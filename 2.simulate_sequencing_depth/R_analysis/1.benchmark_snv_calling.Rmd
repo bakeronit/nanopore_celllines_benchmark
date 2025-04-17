@@ -1,0 +1,493 @@
+---
+title: "Cell lines Mixing experiment"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggh4x)
+library(here)
+source("config.R")
+
+mypal2 <- colorblind_pals 
+names(mypal2) <- c("FP","FN","TP")
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
+```
+
+### The choice of sequencing Variant calling 
+
+```{r}
+somatic_path <- paste0(workdir, "analysis/benchmark/snvs/somatic")
+df <- list.files(somatic_path, pattern = "summary.txt",recursive = TRUE, full.names = TRUE) |> 
+  set_names() |> map(\(x) read.table(x, header=TRUE)) |> list_rbind(names_to = "prefix") |> 
+  filter(Filter=="PASS") |> 
+  mutate(prefix=str_remove(prefix,paste0(somatic_path,"/"))) |> 
+  separate_wider_delim(prefix,delim = "/",names = c("tool","comb"), too_many = "drop") |> 
+  separate_wider_delim(comb, delim = ".",names=c("tumor","tumor_depth","normal","normal_depth")) |> 
+  mutate(type=paste(tumor_depth,normal_depth,sep = "-"),
+         purity=ifelse(tumor=="COLO829" | tumor=="HCC1937","100",tumor |> str_split_i(pattern = "_",i=2)),
+         purity=factor(purity, levels=c("100","80","60","40")),
+         celltype=str_split_i(tumor,"_",i=1))
+
+```
+
+```{r eval=FALSE}
+library(ggpubr)
+p1 <- df |> dplyr::select(type,tumor_depth,normal_depth) |> unique() |> 
+  mutate(tumor_depth=str_remove(tumor_depth,"x") |> as.integer() * -1,
+         normal_depth=str_remove(normal_depth,"x") |> as.integer()) |> 
+  pivot_longer(-type) |> 
+  ggplot(aes(x=type,y=value,fill=name)) + geom_col() + scale_fill_manual(values = c("#317EC2","#E07F80")) +
+  scale_x_discrete(position = "top")  + coord_flip() +
+  theme_pubclean(base_size = 12) + 
+  theme(legend.position = "none",
+        axis.ticks.x = element_blank()) +
+  labs(x="",y="Sequencing depth (X)")
+
+p2 <- df |> filter(celltype=="COLO829", tool=="clairS")|> dplyr::select(tumor,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |>
+  ggplot(aes(x=type,y=value,color=purity,group=tumor)) + geom_line(size=1) + geom_point() + 
+  facet_wrap(~name,ncol = 2) + scale_color_manual(values = brewer.pal(name = "PuOr",n=10)) + labs(x="",y="") + coord_flip() + 
+  theme_pubclean(base_size = 12) + theme(legend.position = "none",
+                                         axis.ticks.y = element_blank(),
+                                         axis.text.y = element_blank())
+
+p3 <- df |> filter(celltype=="COLO829", tool=="deepsomatic")|> dplyr::select(tumor,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |>
+  ggplot(aes(x=type,y=value,color=purity,group=tumor)) + geom_line(size=1) + geom_point() + 
+  facet_wrap(~name,ncol = 2) + scale_color_manual(values = brewer.pal(name = "PuOr",n=10)) + labs(x="",y="") + coord_flip() + 
+  theme_pubclean(base_size = 12) + theme(legend.position = "none",
+                                         axis.ticks.y = element_blank(),
+                                         axis.text.y = element_blank()) 
+
+p4 <- df |> filter(celltype=="HCC1937", tool=="clairS")|> dplyr::select(tumor,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |>
+  ggplot(aes(x=type,y=value,color=purity,group=tumor)) + geom_line(size=1) + geom_point() + 
+  facet_wrap(~name,ncol = 2) + scale_color_manual(values = brewer.pal(name = "PuOr",n=10)) + labs(x="",y="") + coord_flip() + 
+  theme_pubclean(base_size = 12) + theme(legend.position = "none",
+                                         axis.ticks.y = element_blank(),
+                                         axis.text.y = element_blank()) 
+
+p5 <- df |> filter(celltype=="HCC1937", tool=="deepsomatic")|> dplyr::select(tumor,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |>
+  ggplot(aes(x=type,y=value,color=purity,group=tumor)) + geom_line(size=1) + geom_point() + 
+  facet_wrap(~name,ncol = 2) + scale_color_manual(values = brewer.pal(name = "PuOr",n=10)) + labs(x="",y="") + coord_flip() + 
+  theme_pubclean(base_size = 12) + theme(legend.position = "none",
+                                         axis.ticks.y = element_blank(),
+                                         axis.text.y = element_blank()) 
+
+
+p2|p3|p1|p4|p5
+```
+plot F1 score instead of recall and precision
+```{r eval=FALSE}
+pa <- df |> filter(celltype=="COLO829")|> select(tumor,type,purity,tool,F1.score) |> 
+  ggplot(aes(x=type,y=F1.score,color=purity,group=tumor)) + geom_line(size=1) + geom_point() + 
+  scale_color_manual(values = brewer.pal(name = "PuOr",n=10)) + labs(x="",y="") + coord_flip() + facet_wrap(~tool) + 
+  theme_pubclean(base_size = 12) + theme(legend.position = "none",
+                                         axis.ticks.y = element_blank(),
+                                         axis.text.y = element_blank())
+
+pb <- df |> filter(celltype=="HCC1937")|> select(tumor,type,purity,tool,F1.score) |> 
+  ggplot(aes(x=type,y=F1.score,color=purity,group=tumor)) + geom_line(size=1) + geom_point() + 
+  scale_color_manual(values = brewer.pal(name = "PuOr",n=10)) + labs(x="",y="") + coord_flip() + facet_wrap(~tool) + 
+  theme_pubclean(base_size = 12) + theme(legend.position = "none",
+                                         axis.ticks.y = element_blank(),
+                                         axis.text.y = element_blank()) 
+
+
+pa+p1+pb + plot_layout(nrow = 1,widths = c(0.35,0.3,0.35))
+ggsave("figures/mixing_and_depths.png",width = 10,height = 5)
+```
+
+## try heatmap
+```{r eval=FALSE}
+p_heatmap_colo829_clairS <- df |> filter(celltype=="COLO829",tool=="clairS")|> select(tumor,tool,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |> 
+  mutate(hjust=ifelse(name=="Precision",0.25,0.8), vjust=ifelse(name=="Precision",3,-1.5)) |> 
+  ggplot(aes(x=purity, y=type,color=value,shape=name)) +
+  geom_point(size=50) + 
+  scale_shape_manual(values=c("\u25e2","\u25e4")) +
+  theme_minimal() + 
+  geom_text(aes(label = value,hjust=hjust,vjust=vjust), color = "black", size = 4) + #facet_wrap(~tool) +
+  scale_color_gradientn(colors = hcl.colors(20, "RdYlGn")) + coord_fixed() + labs(x="Purity",y="") +
+  theme(legend.position = "none",axis.ticks.y = element_blank(),axis.text.y = element_blank()) 
+
+p_heatmap_colo829_dpsomatic <- df |> filter(celltype=="COLO829",tool=="deepsomatic")|> select(tumor,tool,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |> 
+  mutate(hjust=ifelse(name=="Precision",0.25,0.8), vjust=ifelse(name=="Precision",3,-1.5)) |> 
+  ggplot(aes(x=purity, y=type,color=value,shape=name)) +
+  geom_point(size=50) + 
+  scale_shape_manual(values=c("\u25e2","\u25e4")) +
+  theme_minimal() + 
+  geom_text(aes(label = value,hjust=hjust,vjust=vjust), color = "black", size = 4) + #facet_wrap(~tool) +
+  scale_color_gradientn(colors = hcl.colors(20, "RdYlGn")) + coord_fixed() + labs(x="Purity",y="") +
+  theme(legend.position = "none",axis.ticks.y = element_blank(),axis.text.y = element_blank()) 
+
+p_heatmap_hcc1937_clairS <- df |> filter(celltype=="HCC1937",tool=="clairS")|> select(tumor,tool,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |> 
+  mutate(hjust=ifelse(name=="Precision",0.25,0.8), vjust=ifelse(name=="Precision",3,-1.5)) |> 
+  ggplot(aes(x=purity, y=type,color=value,shape=name)) +
+  geom_point(size=50) + 
+  scale_shape_manual(values=c("\u25e2","\u25e4")) +
+  theme_minimal() + 
+  geom_text(aes(label = value,hjust=hjust,vjust=vjust), color = "black", size = 4) + #facet_wrap(~tool) +
+  scale_color_gradientn(colors = hcl.colors(20, "RdYlGn")) + coord_fixed() + labs(x="Purity",y="") +
+  theme(legend.position = "none",axis.ticks.y = element_blank(),axis.text.y = element_blank()) 
+
+p_heatmap_hcc1937_dpsomatic <- df |> filter(celltype=="HCC1937",tool=="deepsomatic")|> select(tumor,tool,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |> 
+  mutate(hjust=ifelse(name=="Precision",0.25,0.8), vjust=ifelse(name=="Precision",3,-1.5)) |> 
+  ggplot(aes(x=purity, y=type,color=value,shape=name)) +
+  geom_point(size=50) + 
+  scale_shape_manual(values=c("\u25e2","\u25e4")) +
+  theme_minimal() + 
+  geom_text(aes(label = value,hjust=hjust,vjust=vjust), color = "black", size = 4) + #facet_wrap(~tool) +
+  scale_color_gradientn(colors = hcl.colors(20, "RdYlGn")) + coord_fixed() + labs(x="Purity",y="") +
+  theme(legend.position = "none",axis.ticks.y = element_blank(),axis.text.y = element_blank()) 
+
+
+wrap_plots(p_heatmap_colo829_clairS,p_heatmap_colo829_dpsomatic,p1,p_heatmap_hcc1937_clairS, p_heatmap_hcc1937_dpsomatic) + plot_layout(nrow=1)
+```
+
+## keep improving the figure
+
+```{r eval=FALSE}
+my_df <- df |> mutate(facet=paste(celltype,tool,sep = "-"))|> select(tumor,tool, celltype,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |> 
+  mutate(hjust=ifelse(name=="Precision",0.25,0.8), vjust=ifelse(name=="Precision",3,-1.5)) 
+
+ggplot(my_df, aes(x=type,y=purity)) +
+  geom_point(data=my_df |> filter(name=="Precision"), aes(color=value),shape="\u25e2",size=50) + 
+  scale_color_gradientn(colors = c("#B3D9FF", "#4DADF7", "#08519C"), values = scales::rescale(c(0.2, 1)), limits = c(0.2, 1),guide = "legend") +
+  new_scale_colour() + 
+  geom_point(data=my_df |> filter(name=="Recall"), aes(color=value), shape="\u25e4",size=50) + 
+  scale_color_gradientn(colors = c("#FFF7BC", "#FEC44F", "#D95F0E"), values = scales::rescale(c(0.2, 1)), limits = c(0.2, 1),guide = "legend") +
+  new_scale_colour() +
+  geom_text(aes(label = value,hjust=hjust, vjust=vjust, color= value> 0.9), size = 4) + facet_grid(tool~celltype) +
+  scale_color_manual(guide = FALSE, values = c("black", "white")) +
+  coord_fixed() + labs(x="",y="") +  theme_minimal(base_size = 14) + 
+  theme(legend.position = "none",axis.ticks = element_blank())
+
+
+#ggsave("figures/big_heatmap.png",height = 5.4,width = 5.6)
+
+```
+
+
+## Begin again
+
+Begin again, start from something really simple. I need to know the # of SNV detected by different sequencing strategies. so under the sample tumour sequencing depth, how many SNVs called in different normal sequencing depth.
+
+```{r eval=FALSE}
+df |> dplyr::select(c(tool, celltype, purity, type,Precision,Recall, F1.score, TP,FP,FN) )|> filter(celltype=="COLO829") |> 
+  mutate(FN=-FN,recall_pos= FN, precision_pos = TP+FP) |>  pivot_longer(c(TP,FP,FN)) |> 
+  ggplot(aes(x=value,y=type,fill=name)) + geom_col() + facet_grid(purity~tool, scales = "free_x") +
+  geom_text(aes(x=recall_pos,label=Recall*100), size=2.5, hjust=1.1) + 
+  geom_text(aes(x=precision_pos,label=Precision*100), size=2.5, hjust=-.1) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Count",y="Read depth (tumour-normal)", fill="") + 
+  scale_x_continuous(labels = c("40k","20k","0","20k","40k","60k"), breaks = c(-40000,-20000,0,20000,40000,60000),expand = expansion(mult = c(0.1, 0.12))) +
+  theme(strip.background =element_rect(fill="white"),strip.text = element_text(size=12), axis.text = element_text(size=8))
+
+#ggsave("figures/figure2-a.png",units = "mm", height = 80, width = 100)
+
+df |> dplyr::select(c(tool, celltype, purity, type,Precision,Recall, F1.score, TP,FP,FN) )|> filter(celltype=="HCC1937") |> 
+  mutate(FN=-FN,recall_pos= FN, precision_pos = TP+FP) |>  pivot_longer(c(TP,FP,FN)) |> 
+  ggplot(aes(x=value,y=type,fill=name)) + geom_col() + facet_grid(purity~tool, scales = "free_x") +
+  geom_text(aes(x=recall_pos,label=Recall*100), size=2.5, hjust=1.1) + 
+  geom_text(aes(x=precision_pos,label=Precision*100), size=2.5, hjust=-.1) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Count",y="Read depth (tumour-normal)", fill="") + 
+  scale_x_continuous(labels = c("40k","20k","0","20k","40k","60k"), breaks = c(-40000,-20000,0,20000,40000,60000),expand = expansion(mult = c(0.1, 0.12))) +
+  theme(strip.background =element_rect(fill="white"),strip.text = element_text(size=12), axis.text = element_text(size=8))
+
+#ggsave("figures/figure2-b.png",units = "mm", height = 80, width = 100)
+```
+
+```{r fig.height=6.6, fig.width=13.2}
+df |> dplyr::select(c(tool, celltype, purity, type,Precision,Recall, F1.score, TP,FP,FN) ) |> 
+  mutate(FN=-FN,recall_pos= FN, precision_pos = TP+FP) |>  pivot_longer(c(TP,FP,FN)) |> 
+  ggplot(aes(x=value,y=type,fill=name)) + geom_col() + 
+  facet_nested(purity~celltype + tool, scales = "free_x", labeller = labeller(tool=public_tool_names)) +
+  geom_text(aes(x=recall_pos,label=Recall*100), size=2.5, hjust=1.1) + 
+  geom_text(aes(x=precision_pos,label=Precision*100), size=2.5, hjust=-.1) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw() + labs(x="Count",y="Read depth (tumour-normal)", fill="") + 
+  scale_x_continuous(labels = c("40k","20k","0","20k","40k","60k"), 
+                     breaks = c(-40000,-20000,0,20000,40000,60000),expand = expansion(mult = c(0.12, 0.12))) +
+  theme(strip.background =element_rect(fill="white"), legend.position = "none", strip.text = element_text(size=12), axis.text = element_text(size=8))
+
+ggsave("figures/snv_depth_benchmarking.png",width = 13.2,height = 6.6)
+```
+
+**only plot the sample with 100% tumour purity**
+
+```{r, fig.height=3.2, fig.width=7}
+df |> dplyr::select(c(tool, celltype, purity, type,Precision,Recall, F1.score, TP,FP,FN) ) |> 
+  filter(purity==100) |> 
+  mutate(FN=-FN,recall_pos= FN, precision_pos = TP+FP) |>  pivot_longer(c(TP,FP,FN)) |> 
+  ggplot(aes(x=value,y=type,fill=name)) + geom_col() + 
+  facet_nested(tool~celltype, scales = "free_x", labeller = labeller(tool=public_tool_names)) +
+  geom_text(aes(x=recall_pos,label=Recall*100), size=2.5, hjust=1.1) + 
+  geom_text(aes(x=precision_pos,label=Precision*100), size=2.5, hjust=-.1) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw() + labs(x="Count",y="Read depth (tumour-normal)", fill="") + 
+  scale_x_continuous(labels = c("40k","20k","0","20k","40k","60k"), 
+                     breaks = c(-40000,-20000,0,20000,40000,60000),expand = expansion(mult = c(0.12, 0.12))) +
+  theme(strip.background =element_rect(fill="white"), legend.position = "none", strip.text = element_text(size=12), axis.text = element_text(size=8))
+
+ggsave("figures/snv_depth_benchmarking_100.png",width = 7,height = 3.2)
+ggsave("figures/figure4a.pdf", width = 7, height = 3.2, dpi = "retina")
+```
+
+## indels
+
+```{r}
+somatic_indels_path <- paste0(workdir, "analysis/benchmark/indels/somatic")
+
+df_indel <- list.files(somatic_indels_path, pattern = "summary.txt",recursive = TRUE, full.names = TRUE) |> 
+  set_names() |> map(\(x) read.table(x, header=TRUE)) |> list_rbind(names_to = "prefix") |> 
+  mutate(prefix=str_remove(prefix,paste0(somatic_indels_path,"/"))) |> 
+  separate_wider_delim(prefix,delim = "/",names = c("tool","comb"), too_many = "drop") |> 
+  separate_wider_delim(comb, delim = ".",names=c("tumor","tumor_depth","normal","normal_depth")) |> 
+  mutate(type=paste(tumor_depth,normal_depth,sep = "-"),
+         purity=ifelse(tumor=="COLO829" | tumor=="HCC1937","100",tumor |> str_split_i(pattern = "_",i=2)),
+         purity=factor(purity, levels=c("100","80","60","40")),
+         celltype=str_split_i(tumor,"_",i=1))
+```
+
+
+```{r eval=FALSE}
+library(facetscales)
+#library(ggpattern)
+scales_x <- list(
+  `clairS` = scale_x_continuous(limits = c(-1000, 10600), labels = c("400","0","1k","2k","3k","4k","5k","6k","7k","8k","9k","10k"),breaks = c(-400,0,1000,2000,3000,4000,5000,6000, 7000,8000,9000,10000)),
+  `deepsomatic` = scale_x_continuous(limits = c(-500, 650), labels = c("400","200","0","200","400","600"), breaks = c(-400,-200,0,200,400,600))
+)
+
+temp_df_indel <- df_indel |> dplyr::select(tool,celltype, purity, type, Type, Precision,Recall, F1.score, TP, FP, FN) |> filter(celltype=="COLO829",Type=="INDEL") |> 
+  mutate(FN=-FN, recall_pos= FN, precision_pos = TP+FP)  |> pivot_longer(c(TP,FN,FP))
+
+df_indel |> dplyr::select(c(tool, celltype, purity, type, Type,Precision, Recall, F1.score, TP,FP,FN) )|> filter(celltype=="COLO829", Type!="INDEL") |>
+  mutate(FN=-FN) |> pivot_longer(c(TP,FP,FN)) |> 
+  ggplot(aes(x=value,y=type,fill=name, alpha=Type)) + geom_bar(stat = "identity",position = "stack") + 
+  scale_alpha_manual(values = c(0.6, 1))  + facet_grid(purity~tool, scales = "free_x") +
+  facet_grid_sc(rows = vars(purity), cols = vars(tool), scales = list(x = scales_x)) +
+  geom_text(data = temp_df_indel, aes(x=recall_pos,label=Recall*100), size=2.5, hjust=1.1,alpha=1) + 
+  geom_text(data = temp_df_indel, aes(x=precision_pos,label=Precision*100), size=2.5, hjust=-.1, alpha=1) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Count",y="Read depth (tumour-normal)", fill="") + 
+  theme(strip.background =element_rect(fill="white"),strip.text = element_text(size=12), axis.text = element_text(size=8))
+
+#ggsave("figures/figure2-c.png",units = "mm", height = 80, width = 100)
+```
+
+```{r eval=FALSE}
+scales_x <- list(
+  `clairS` = scale_x_continuous(limits = c(-3500, 17200), labels = c("2k","0","2k","4k","6k","8k","10k","12k","14k","16k"),breaks = c(-2000,0,2000,4000,6000,8000,10000,12000,14000,16000)),
+  `deepsomatic` = scale_x_continuous(limits = c(-3500, 5500), labels = c("3k","2k","1k","0","1k","2k","3k","4k","5k"), breaks = c(-3000,-2000,-1000,0,1000,2000,3000,4000,5000))
+)
+
+temp_df_indel <- df_indel |> dplyr::select(tool,celltype, purity, type, Type, Precision,Recall, F1.score, TP, FP, FN) |> filter(celltype=="HCC1937",Type=="INDEL") |> 
+  mutate(FN=-FN, recall_pos= FN, precision_pos = TP+FP)  |> pivot_longer(c(TP,FN,FP))
+
+df_indel |> dplyr::select(c(tool, celltype, purity, type, Type,Precision, Recall, F1.score, TP,FP,FN) )|> filter(celltype=="HCC1937", Type!="INDEL") |>
+  mutate(FN=-FN) |> pivot_longer(c(TP,FP,FN)) |> 
+  ggplot(aes(x=value,y=type,fill=name, alpha=Type)) + geom_bar(stat = "identity",position = "stack") + 
+  scale_alpha_manual(values = c(0.6, 1))  + facet_grid(purity~tool, scales = "free_x") +
+  #facet_grid(purity~tool, scale="free_x") + 
+  facet_grid_sc(rows = vars(purity), cols = vars(tool), scales = list(x = scales_x)) +
+  geom_text(data = temp_df_indel, aes(x=recall_pos,label=Recall*100), size=2.5, hjust=1.1,alpha=1) + 
+  geom_text(data = temp_df_indel, aes(x=precision_pos,label=Precision*100), size=2.5, hjust=-.1, alpha=1) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Count",y="Read depth (tumour-normal)", fill="") + 
+  theme(strip.background =element_rect(fill="white"),strip.text = element_text(size=12), axis.text = element_text(size=8))
+
+#ggsave("figures/figure2-d.png",units = "mm", height = 80, width = 100)
+```
+
+```{r fig.height=6.6, fig.width=13.2}
+scales <- list(
+  scale_x_continuous(limits = c(-1000, 10700), labels = c("1k","0","1k","2k","3k","4k","5k","6k","7k","8k","9k","10k","11k"),breaks = c(-1000,0,1000,2000,3000,4000,5000,6000, 7000,8000,9000,10000,110000)),
+   scale_x_continuous(limits = c(-500, 650), labels = c("400","200","0","200","400","600"), breaks = c(-400,-200,0,200,400,600)),
+  scale_x_continuous(limits = c(-3500, 17200), labels = c("2k","0","2k","4k","6k","8k","10k","12k","14k","16k"),breaks = c(-2000,0,2000,4000,6000,8000,10000,12000,14000,16000)),
+  scale_x_continuous(limits = c(-3500, 5500), labels = c("3k","2k","1k","0","1k","2k","3k","4k","5k"), breaks = c(-3000,-2000,-1000,0,1000,2000,3000,4000,5000))
+)
+
+temp_df_indel <- df_indel |> dplyr::select(tool,celltype, purity, type, Type, Precision,Recall, F1.score, TP, FP, FN) |> filter(Type=="INDEL") |> 
+  mutate(FN=-FN, recall_pos= FN, precision_pos = TP+FP)  |> pivot_longer(c(TP,FN,FP))
+
+df_indel |> dplyr::select(c(tool, celltype, purity, type, Type,Precision, Recall, F1.score, TP,FP,FN) )|> filter( Type!="INDEL") |>
+  mutate(FN=-FN) |> pivot_longer(c(TP,FP,FN)) |> 
+  ggplot(aes(x=value,y=type,fill=name, alpha=Type)) + geom_bar(stat = "identity",position = "stack") + 
+  scale_alpha_manual(values = c(0.6, 1)) +
+  facet_nested(purity~celltype + tool, scales = "free_x", labeller = labeller(tool=public_tool_names)) + facetted_pos_scales(x = scales) +
+  geom_text(data = temp_df_indel, aes(x=recall_pos,label=Recall*100), size=2.5, hjust=1.1,alpha=1) + 
+  geom_text(data = temp_df_indel, aes(x=precision_pos,label=Precision*100), size=2.5, hjust=-.1, alpha=1) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Count",y="Read depth (tumour-normal)", fill="") + 
+  theme(strip.background =element_rect(fill="white"), legend.position = "none",strip.text = element_text(size=12), axis.text = element_text(size=8))
+
+ggsave("figures/indel_depth_benchmarking.png",height = 6.6,width = 13.2)
+```
+
+
+**only plot the results for sample with 100% purity**
+```{r, fig.height=3.6, fig.width=7}
+scales_for_100 <- list(
+  scale_x_continuous(limits = c(-900, 10600), labels = c("1k","0","1k","2k","3k","4k","5k","6k","7k","8k","9k","10k","11k"),breaks = c(-1000,0,1000,2000,3000,4000,5000,6000, 7000,8000,9000,10000,110000)),
+  scale_x_continuous(limits = c(-2000, 17100), labels = c("1k","0","2k","4k","6k","8k","10k","12k","14k","16k"),breaks = c(-1000,0,2000,4000,6000,8000,10000,12000,14000,16000)),
+  scale_x_continuous(limits = c(-280, 610), labels = c("400","200","0","200","400","600"), breaks = c(-400,-200,0,200,400,600)),
+  scale_x_continuous(limits = c(-3000, 5500), labels = c("3k","2k","1k","0","1k","2k","3k","4k","5k"), breaks = c(-3000,-2000,-1000,0,1000,2000,3000,4000,5000))
+)
+
+df_indel_100 <- df_indel |> filter(purity==100)
+temp_df_indel <- df_indel_100 |> dplyr::select(tool,celltype, purity, type, Type, Precision,Recall, F1.score, TP, FP, FN) |> filter(Type=="INDEL") |> 
+  mutate(FN=-FN, recall_pos= FN, precision_pos = TP+FP)  |> pivot_longer(c(TP,FN,FP))
+
+df_indel_100 |> dplyr::select(c(tool, celltype, purity, type, Type,Precision, Recall, F1.score, TP,FP,FN) )|> filter( Type!="INDEL") |>
+  mutate(FN=-FN) |> pivot_longer(c(TP,FP,FN)) |> 
+  ggplot(aes(x=value,y=type,fill=name, alpha=Type)) + geom_bar(stat = "identity",position = "stack") + 
+  scale_alpha_manual(values = c(0.6, 1)) +
+  facet_grid2(tool~celltype, scales = "free_x", labeller = labeller(tool=public_tool_names), independent = "x") + facetted_pos_scales(x = scales_for_100) +
+  geom_text(data = temp_df_indel, aes(x=recall_pos,label=Recall*100), size=2.5, hjust=1.1,alpha=1) + 
+  geom_text(data = temp_df_indel, aes(x=precision_pos,label=Precision*100), size=2.5, hjust=-.1, alpha=1) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Count",y="Read depth (tumour-normal)", fill="") + 
+  theme(strip.background =element_rect(fill="white"), legend.position = "none",strip.text = element_text(size=12), axis.text = element_text(size=8))
+
+ggsave("figures/indel_depth_benchmarking_100.png",width = 7,height = 3.6)
+ggsave("figures/figure4b.pdf", width = 7, height = 3.6, dpi = "retina")
+```
+
+```{r cache=TRUE, warning=FALSE}
+read_bc_vcf2 <- function(filename) {
+  prefix <- dirname(filename) |> basename() |> str_remove("_passed")
+  tool <- filename |> str_extract("deepsomatic|clairS")
+  if(tool=="deepsomatic") {
+    info_cols <- c("GT","GQ","DP","AD","VAF","PL" )
+    af_col <- "VAF"
+  } else {
+    info_cols <- c("GT","GQ","DP","AF","AD","NAF","NDP","NAD","AU","CU","GU","TU","NAU","NCU","NGU","NTU")
+    af_col <- "AF"
+  }
+  
+  read_tsv(filename, col_names = F) |> separate_wider_delim(cols = "X10",delim = ":",names = info_cols) |>
+    add_column(prefix=prefix, tool=tool) |> 
+    dplyr::select(X1, X2, X6, GT, DP, af_col,prefix, tool) |> dplyr::rename("chr"=X1,"pos"=X2, "qual" = X6,"vaf"=af_col) 
+}
+
+
+df_tp <- list.files(paste0(workdir,"analysis/benchmark/snvs/somatic"), pattern = "tp.vcf", recursive = TRUE,full.names = T) |> keep(\(x) grepl("passed",x)) |> 
+  map(read_bc_vcf2)  |> list_rbind()|> add_column(type="TP")
+
+df_fp <- list.files(paste0(workdir,"analysis/benchmark/snvs/somatic"), pattern = "^fp.vcf", recursive = TRUE,full.names = T) |> keep(\(x) grepl("passed",x)) |> 
+  map(read_bc_vcf2)  |> list_rbind()|> add_column(type="FP")
+
+df_tp_fp <- rbind(df_tp, df_fp) |> separate_wider_delim(prefix,delim = ".",
+                                            names = c("tumor","tumor_depth","normal","normal_depth"))  |>
+  mutate(vaf=as.numeric(vaf), DP=as.numeric(DP), qual=as.numeric(qual),
+         celltype=ifelse(startsWith(tumor,"COLO829"), "COLO829", "HCC1937"), 
+         comb=paste(tumor_depth,normal_depth,sep = "-"), 
+         purity=str_split_i(tumor,"_",i=2), 
+         purity=ifelse(is.na(purity),"100",purity),
+         purity=factor(purity, levels=seq(100,40,-20)))
+```
+
+```{r, fig.height=6.6, fig.width=8}
+df_tp_fp |> 
+  ggplot(aes(x=comb, y=vaf, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_nested(tool+purity~celltype, labeller = labeller(tool=public_tool_names)) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Read depth (tumour-normal)",y="Allele frequency", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=10), 
+        axis.text.x = element_text(size=8, angle = 45,hjust=1), axis.text.y = element_text(size=7))
+
+ggsave("figures/snv_depth_benchmarking_vaf.png", height = 6.6, width = 8)
+```
+
+```{r, fig.height=6.6, fig.width=8, warning=FALSE}
+df_tp_fp |> 
+  ggplot(aes(x=comb, y=DP, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_nested(tool+purity~celltype, labeller = labeller(tool=public_tool_names)) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Read depth (tumour-normal)",y="Read depth in tumor", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=10), 
+        axis.text.x = element_text(size=8, angle = 45,hjust=1), axis.text.y = element_text(size=7)) + ylim(0,120)
+
+ggsave("figures/snv_depth_benchmarking_dp.png", height = 6.6, width = 8)
+```
+
+```{r, fig.height=6.6, fig.width=8}
+df_tp_fp |> 
+  ggplot(aes(x=comb, y=qual, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_nested(tool+purity~celltype, labeller = labeller(tool=public_tool_names)) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Read depth (tumour-normal)",y="QUAL score", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=10), 
+        axis.text.x = element_text(size=8, angle = 45,hjust=1), axis.text.y = element_text(size=7))
+
+ggsave("figures/snv_depth_benchmarking_qual.png", height = 6.6, width = 8)
+```
+**only plot for samples with 100% purity**
+```{r, fig.width=6.6, fig.height=6}
+name_labeller <- c("VAF","DP","QUAL")
+names(name_labeller) <- c("vaf","DP","qual")
+df_tp_fp |> filter(purity==100, DP<120) |> 
+  pivot_longer(c(DP,vaf,qual)) |> mutate(name=factor(name, levels=c("vaf","DP","qual"))) |> 
+  ggplot(aes(x=comb, y=value, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_nested(tool+name~celltype, labeller = labeller(tool=public_tool_names, name=name_labeller), scale="free_y") + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Read depth (tumour-normal)",y="Values", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=10), 
+        axis.text.x = element_text(size=8, angle = 45,hjust=1), axis.text.y = element_text(size=7))
+
+ggsave("figures/supp-figure8.png", width = 6.6, height = 6, dpi = "retina")
+ggsave("figures/supp-figure8.pdf", width = 6.6, height = 6, dpi = "retina")
+```
+
+not very interesting. let's have a look of the indels
+
+```{r, cache=TRUE, warning=FALSE}
+df_indel_tp <- list.files(paste0(workdir, "analysis/benchmark/indels/somatic"), pattern = "^tp.vcf", recursive = TRUE,full.names = T)|>  map(read_bc_vcf2)  |> list_rbind()|> add_column(type="TP")
+
+df_indel_fp <- list.files(paste0(workdir, "analysis/benchmark/indels/somatic"), pattern = "^fp.vcf", recursive = TRUE,full.names = T) |> map(read_bc_vcf2)  |> list_rbind()|> add_column(type="FP")
+
+df_indel_tp_fp <- 
+  rbind(df_indel_tp, df_indel_fp) |> separate_wider_delim(prefix,delim = ".",
+                                            names = c("tumor","tumor_depth","normal","normal_depth"))  |>
+  mutate(vaf=as.numeric(vaf), DP=as.numeric(DP), qual=as.numeric(qual),
+         celltype=ifelse(startsWith(tumor,"COLO829"), "COLO829", "HCC1937"), 
+         comb=paste(tumor_depth,normal_depth,sep = "-"), 
+         purity=str_split_i(tumor,"_",i=2), 
+         purity=ifelse(is.na(purity),"100",purity),
+         purity=factor(purity, levels=seq(100,40,-20)))
+```
+
+```{r, fig.height=6.6, fig.width=8}
+df_indel_tp_fp |> 
+  ggplot(aes(x=comb, y=vaf, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_nested(tool+purity~celltype, labeller = labeller(tool=public_tool_names)) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Read depth (tumour-normal)",y="Allele frequency", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=10), 
+        axis.text.x = element_text(size=8, angle = 45,hjust=1), axis.text.y = element_text(size=7))
+
+ggsave("figures/indel_depth_benchmarking_vaf.png", height = 6.6, width = 8)
+```
+
+```{r, fig.height=6.6, fig.width=8, warning=FALSE}
+df_indel_tp_fp |> 
+  ggplot(aes(x=comb, y=DP, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_nested(tool+purity~celltype, labeller = labeller(tool=public_tool_names)) +  
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Read depth (tumour-normal)",y="Read depth in tumor", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=10), 
+        axis.text.x = element_text(size=8, angle = 45,hjust=1), axis.text.y = element_text(size=7)) + ylim(0,120)
+
+ggsave("figures/indel_depth_benchmarking_dp.png", height = 6.6, width = 8)
+```
+
+```{r, fig.height=6.6, fig.width=8, warning=FALSE}
+df_indel_tp_fp |> 
+  ggplot(aes(x=comb, y=qual, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_nested(tool+purity~celltype, labeller = labeller(tool=public_tool_names)) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Read depth (tumour-normal)",y="QUAL score", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=10), 
+        axis.text.x = element_text(size=8, angle = 45,hjust=1), axis.text.y = element_text(size=7))
+
+ggsave("figures/indel_depth_benchmarking_qual.png", height = 6.6, width = 8)
+```

@@ -1,0 +1,6 @@
+executor: cluster-generic
+cluster-generic-submit-cmd: "/mnt/backedup/home/jiaZ/.config/snakemake/qimr/pbs-submit.py"
+jobs: 500
+use-envmodules: True
+printshellcmds: True
+latency-wait: "15"

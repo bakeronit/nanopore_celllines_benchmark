@@ -1,0 +1,175 @@
+Using profiles qimr and profiles/default and workflow specific profile profiles/default for setting default command line arguments.
+Building DAG of jobs...
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided remote nodes: 500
+Job stats:
+job                               count
+------------------------------  -------
+all                                   1
+benchmark_germline_snv_calling        2
+total                                 3
+
+Select jobs to execute...
+Execute 2 jobs...
+
+[Wed Sep  4 13:58:15 2024]
+rule benchmark_germline_snv_calling:
+    input: analysis/snvs/clair3/R10/sup/HCC1937_BL/phased_merge_output.vcf.gz, /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta
+    output: analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+    jobid: 1
+    reason: Missing output files: analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+    wildcards: flowcell=R10, mode=sup, tool=clair3, sample=HCC1937_BL
+    threads: 8
+    resources: tmpdir=<TBD>, mem=20, walltime=2
+
+
+        echo -e "Filter	Type	Precision	Recall	F1-score	TP	FP	FN" > analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        
+        echo -ne "ALL	" >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/clair3/R10/sup/HCC1937_BL/phased_merge_output.vcf.gz         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        
+        echo -ne "PASS	" >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/clair3/R10/sup/HCC1937_BL/phased_merge_output.vcf.gz         --input_filter_tag 'PASS'         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL_passed --roc_fn analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL_passed/roc | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        
+Submitted job 1 with external jobid '26479831.hpcpbs02'.
+
+[Wed Sep  4 13:58:15 2024]
+rule benchmark_germline_snv_calling:
+    input: analysis/snvs/deepvariant/R10/sup/HCC1937_BL/HCC1937_BL.vcf.gz, /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta
+    output: analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+    jobid: 3
+    reason: Missing output files: analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+    wildcards: flowcell=R10, mode=sup, tool=deepvariant, sample=HCC1937_BL
+    threads: 8
+    resources: tmpdir=<TBD>, mem=20, walltime=2
+
+
+        echo -e "Filter	Type	Precision	Recall	F1-score	TP	FP	FN" > analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        
+        echo -ne "ALL	" >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/deepvariant/R10/sup/HCC1937_BL/HCC1937_BL.vcf.gz         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        
+        echo -ne "PASS	" >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/deepvariant/R10/sup/HCC1937_BL/HCC1937_BL.vcf.gz         --input_filter_tag 'PASS'         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL_passed --roc_fn analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL_passed/roc | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        
+Submitted job 3 with external jobid '26479832.hpcpbs02'.
+[Wed Sep  4 14:00:35 2024]
+Error in rule benchmark_germline_snv_calling:
+    message: For further error details see the cluster/cloud log and the log files of the involved rule(s).
+    jobid: 1
+    input: analysis/snvs/clair3/R10/sup/HCC1937_BL/phased_merge_output.vcf.gz, /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta
+    output: analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+    shell:
+        
+        echo -e "Filter	Type	Precision	Recall	F1-score	TP	FP	FN" > analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        
+        echo -ne "ALL	" >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/clair3/R10/sup/HCC1937_BL/phased_merge_output.vcf.gz         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        
+        echo -ne "PASS	" >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/clair3/R10/sup/HCC1937_BL/phased_merge_output.vcf.gz         --input_filter_tag 'PASS'         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL_passed --roc_fn analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL_passed/roc | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+    external_jobid: 26479831.hpcpbs02
+
+[Wed Sep  4 14:01:25 2024]
+Error in rule benchmark_germline_snv_calling:
+    message: For further error details see the cluster/cloud log and the log files of the involved rule(s).
+    jobid: 3
+    input: analysis/snvs/deepvariant/R10/sup/HCC1937_BL/HCC1937_BL.vcf.gz, /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta
+    output: analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+    shell:
+        
+        echo -e "Filter	Type	Precision	Recall	F1-score	TP	FP	FN" > analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        
+        echo -ne "ALL	" >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/deepvariant/R10/sup/HCC1937_BL/HCC1937_BL.vcf.gz         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        
+        echo -ne "PASS	" >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/deepvariant/R10/sup/HCC1937_BL/HCC1937_BL.vcf.gz         --input_filter_tag 'PASS'         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL_passed --roc_fn analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL_passed/roc | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+    external_jobid: 26479832.hpcpbs02
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-09-04T135815.052627.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+Using profiles qimr and profiles/default and workflow specific profile profiles/default for setting default command line arguments.
+Building DAG of jobs...
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided remote nodes: 500
+Job stats:
+job                               count
+------------------------------  -------
+all                                   1
+benchmark_germline_snv_calling        2
+total                                 3
+
+Select jobs to execute...
+Execute 2 jobs...
+
+[Wed Sep  4 14:02:38 2024]
+rule benchmark_germline_snv_calling:
+    input: analysis/snvs/clair3/R10/sup/HCC1937_BL/phased_merge_output.vcf.gz, /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta
+    output: analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+    jobid: 1
+    reason: Missing output files: analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+    wildcards: flowcell=R10, mode=sup, tool=clair3, sample=HCC1937_BL
+    threads: 8
+    resources: tmpdir=<TBD>, mem=50, walltime=2
+
+
+        echo -e "Filter	Type	Precision	Recall	F1-score	TP	FP	FN" > analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        
+        echo -ne "ALL	" >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/clair3/R10/sup/HCC1937_BL/phased_merge_output.vcf.gz         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        
+        echo -ne "PASS	" >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/clair3/R10/sup/HCC1937_BL/phased_merge_output.vcf.gz         --input_filter_tag 'PASS'         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL_passed --roc_fn analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL_passed/roc | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt
+        
+Submitted job 1 with external jobid '26480329.hpcpbs02'.
+
+[Wed Sep  4 14:02:39 2024]
+rule benchmark_germline_snv_calling:
+    input: analysis/snvs/deepvariant/R10/sup/HCC1937_BL/HCC1937_BL.vcf.gz, /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta
+    output: analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+    jobid: 3
+    reason: Missing output files: analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+    wildcards: flowcell=R10, mode=sup, tool=deepvariant, sample=HCC1937_BL
+    threads: 8
+    resources: tmpdir=<TBD>, mem=50, walltime=2
+
+
+        echo -e "Filter	Type	Precision	Recall	F1-score	TP	FP	FN" > analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        
+        echo -ne "ALL	" >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/deepvariant/R10/sup/HCC1937_BL/HCC1937_BL.vcf.gz         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        
+        echo -ne "PASS	" >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        singularity exec /mnt/backedup/home/jiaZ/working/imgs/clairs/clairs_v0.1.7.sif python /opt/bin/clairs.py compare_vcf         --truth_vcf_fn /mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937_bl/merged_normed_isec_snv.hom100.goldstandard.vcf.gz         --input_vcf_fn analysis/snvs/deepvariant/R10/sup/HCC1937_BL/HCC1937_BL.vcf.gz         --input_filter_tag 'PASS'         --threads 8         --ref_fn /mnt/backedup/home/jiaZ/working/data/genome/reference.fasta         --output_dir analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL_passed --roc_fn analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL_passed/roc | grep -E 'SNV' >> analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+        
+Submitted job 3 with external jobid '26480332.hpcpbs02'.
+[Wed Sep  4 14:27:29 2024]
+Finished job 3.
+1 of 3 steps (33%) done
+[Wed Sep  4 15:56:24 2024]
+Finished job 1.
+2 of 3 steps (67%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Wed Sep  4 15:56:24 2024]
+localrule all:
+    input: analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt, analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_10.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_20.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_30.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_40.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_50.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_60.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_70.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_80.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_90.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_10.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_20.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_30.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_40.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_50.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_60.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_70.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_80.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_90.HCC1937_BL/summary.txt, analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937.HCC1937_BL/summary.txt
+    jobid: 0
+    reason: Input files updated by another job: analysis/benchmark/snvs/germline/R10/sup/clair3/HCC1937_BL/summary.txt, analysis/benchmark/snvs/germline/R10/sup/deepvariant/HCC1937_BL/summary.txt
+    resources: tmpdir=/tmp
+
+[Wed Sep  4 15:56:24 2024]
+Finished job 0.
+3 of 3 steps (100%) done
+Complete log: .snakemake/log/2024-09-04T140237.905188.snakemake.log

@@ -1,0 +1,394 @@
+---
+title: "SNV and short indel calling performance in samples with different purity"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+#library(VariantAnnotation)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(ggridges)
+library(ggplot2)
+library(patchwork)
+source("config.R")
+mypal <- purity_pals #mypal <-scales::seq_gradient_pal("lightblue", "red", "Lab")(seq(0,1,length.out=10))
+mypal2 <- colorblind_pals 
+names(mypal2) <- c("FP","FN","TP")
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
+```
+
+We used `ClairS` and `DeepSomatic` to call somatic SNVs and indels in samples with different tumour purity levels. We used Clair3 model `r1041_e82_400bps_sup_v430` and ClairS `ont_r10_dorado_sup_5khz` for ClairS SNV/indel calling, and we used `ONT_R104` for DeepSomatic calling. 
+
+```bash
+singularity exec $ClairS_sif /opt/bin/run_clairs \
+            --tumor_bam_fn $tumor_bam \
+            --normal_bam_fn $normal_bam \
+            --ref_fn $genome \
+            --clair3_model_path $clair3_model \
+            --include_all_ctgs --enable_indel_calling \
+            --sample_name $tumor \
+            --threads 24 \
+            --platform ont_r10_dorado_sup_5khz \
+            --output_dir $outdir \
+            --remove_intermediate_dir \
+            --conda_prefix /opt/conda/envs/clairs
+            
+
+singularity exec $deepsomatic_sif /opt/deepvariant/bin/deepsomatic/run_deepsomatic \
+        --ref=$genome \
+        --model_type=ONT_R104 \
+        --reads_normal=$normal_bam \
+        --reads_tumor=$tumor_bam \
+        --output_vcf=$output \
+        --sample_name_tumor="$tumor" \
+        --sample_name_normal="$normal" \
+        --num_shards=24 \
+        --logging_dir=$log \
+        --customized_model=$ONT_model
+```
+
+### Number of somatic SNVs detected in samples
+
+
+```{r, cache=TRUE, fig.height=3, fig.width=6.2}
+library(ggsci)
+library(VariantAnnotation)
+somatic_snv_path <- paste0(workdir, "analysis/snvs/")
+
+df_snv_clairs <- list.files(paste0(somatic_snv_path,"clairS"), pattern = "output.vcf.gz$",full.names = TRUE,recursive = TRUE ) |> 
+  set_names(\(f) dirname(f) |> basename() |> str_extract("[^.]+")) |> 
+  map(\(x) VariantAnnotation::readVcf(x) %>% .[filt(.)=="PASS"] |> nrow()) |> stack() |> add_column(tool="ClairS")
+  
+df_snv_dpsomatic <- list.files(paste0(somatic_snv_path,"deepsomatic"), pattern = "output.somatic.vcf.gz$",full.names = TRUE,recursive = TRUE ) |> set_names(\(f) dirname(f) |> basename() |> str_extract("[^.]+")) |> 
+  map(\(x) VariantAnnotation::readVcf(x) %>% .[filt(.)=="PASS"] |> nrow()) |> stack() |> add_column(tool="DeepSomatic")
+
+rbind(df_snv_clairs,df_snv_dpsomatic) |>  separate_wider_delim(ind,delim = "_",names = c("celltype","purity"),too_few = "align_start") |> replace_na(list(purity="100")) |> 
+  mutate(purity=factor(purity, levels=seq(100,10,-10) |> as.character())) |> 
+  ggplot(aes(x=purity,y=values,fill=tool)) + geom_col(position = "dodge") + 
+  facet_grid(~celltype) + scale_fill_simpsons() + 
+  theme_bw() + theme(strip.background =element_rect(fill="white")) + labs(x="Purity",y="Count",fill="")
+```
+
+**Figure 1: The number of somatic SNV and indels identifed in COLO829 and HCC1937 samples with varying tumour purity levels using ClairS and DeepSomatic**
+
+### SNV calling performance in samples with different tumour purity levels
+
+We used the `compare_vcf` module within ClairS to Compare these SNV/indels against our short-read "gold standard".
+
+```bash
+singularity exec {ClairS_sif} python /opt/bin/clairs.py compare_vcf \
+        --truth_vcf_fn {params.gs} \
+        --input_vcf_fn {input.snv} \
+        --threads {threads} \
+        --ref_fn {input.genome} \
+        --output_dir {params.outdir} | grep -E 'SNV' >> {output}
+```
+
+```{r}
+somatic_benchmark_path <- paste0(workdir, "analysis/benchmark/snvs/somatic/R10/sup")
+summary_files <- list.files(path = somatic_benchmark_path,pattern = "summary.txt",recursive = TRUE, full.names = TRUE) |> discard(\(x) grepl("noXY",x))
+
+df <- summary_files |> 
+  set_names(\(x) str_remove_all(x,pattern = c(paste0(somatic_benchmark_path,"/"),"/summary.txt") |> paste(collapse = "|"))) |> 
+  map(\(x) read.table(x,header=TRUE)) |> list_rbind(names_to = "prefix") |> 
+  filter(Filter=="PASS") |> 
+  separate_wider_delim(prefix, delim = "/",names=c("tool","sample")) |> 
+  separate_wider_delim(sample, delim = ".", names = c("tumor","normal")) |> 
+  separate_wider_delim(tumor, delim = "_", names = c("celltype","purity"),too_few ="align_start") |> 
+  mutate(purity=ifelse(is.na(as.numeric(purity)), 100, as.numeric(purity)),
+         purity=factor(purity, levels=seq(10,100,10))) |> 
+  mutate(celltype=ifelse(grepl("noXY", normal),paste0(celltype,"_noXY"),celltype))
+
+df |> dplyr::select(tool,celltype,purity,Precision,Recall, F1.score, TP, FP, FN) |>  knitr::kable()
+```
+
+```{r, fig.height=3.8, fig.width=6.2}
+df |> 
+  mutate(tool=ifelse(tool=="clairS","ClairS","DeepSomatic")) |> 
+  ggplot(aes(x=Recall,y=Precision,group=tool,fill=purity,shape=tool)) +
+  geom_path(color="darkgrey", linewidth=.4) +
+  geom_point(size=2.5, color="black", alpha=.8) +
+  scale_shape_manual(values=c(21,24)) +
+  scale_fill_manual(values=mypal) +
+  facet_wrap(~celltype) + ylim(0,1) + xlim(0,1) + #guides(fill = guide_colorbar(barwidth = 10, barheight = 1)) +
+  theme_bw(base_size = 12)  + 
+  guides(fill = guide_legend(override.aes = list(shape = 22, size=3))) + 
+  theme(legend.key.size = unit(0, "cm"), 
+        legend.position = "bottom") +
+  labs(shape="", fill="Purity") 
+
+ggsave("figures/snv_calling_benchmark_precision_recall_curve_plot.png", width = 6.2, height = 3.8) #in fact, this curve is recall-precision curve instead of ROC curve which is plotted with recall and FPR
+```
+
+```{r}
+
+roc_df <- list.files(paste0(workdir, "analysis/benchmark/snvs/somatic/R10/sup"), pattern = "^roc$", recursive = TRUE, full.names = TRUE) |> 
+  discard(\(x) grepl("noXY",x)) |> 
+  set_names(\(x) str_remove(x, workdir) ) |> 
+  map(\(f) read_tsv(f, col_names = c("qual","precision","recall","f1")) ) |> list_rbind(names_to="prefix") |> 
+  mutate(tool=ifelse(grepl("clairS",prefix),"ClairS","DeepSomatic"), 
+         sample=str_split_i(prefix,"/",i=8) |> str_split_i("\\.",i=1), 
+         normal=str_split_i(prefix,"/",i=8) |> str_split_i("\\.",i=2), 
+         celltype=ifelse(startsWith(sample,"COLO829"),"COLO829","HCC1937"), celltype=ifelse(grepl("noXY",normal), paste0(celltype,"_noXY"), celltype),
+         purity=str_split_i(sample,"_",i=2), purity=ifelse(is.na(purity),"100",purity), purity=factor(purity, levels=seq(10,100,10) |> as.character()),
+         fdr=1-precision, fpr=(1-precision)*recall/precision)
+  
+  
+roc_df |>
+  ggplot(aes(x=fpr, y=recall,fill=qual, color=purity, linetype=tool)) +
+  geom_line(linewidth=1.8, alpha=.6) + scale_color_manual(values=purity_pals) +
+  facet_grid(~celltype,scales = "free_x") + ylim(0,1) + 
+  theme_minimal() +
+  labs(x="Estimated false positive rate", y="Recall", linetype="", color="Purity") +
+  theme(legend.position = "bottom", panel.background = element_rect(fill = "lightgrey", color="black"))
+
+
+ggsave("figures/snv_calling_benchmark_ROCcurve_plot.png", width = 6.2, height = 3.8)
+
+roc_df |> group_by(sample, celltype,tool) |> mutate(max_f1=max(f1)) |> filter(f1==max_f1) |> slice_max(qual) |> 
+  mutate(purity=factor(purity,levels=seq(100,10,-10))) |> 
+  ggplot(aes(x=purity,y=qual,color=tool, group=tool)) + geom_point() + geom_line() +
+  facet_wrap(~celltype) + theme_minimal() + 
+  labs(x="Purity", y="Optimum QUAL threshold", color="") + 
+  theme(legend.position = "bottom")
+  
+```
+
+**Figure 2: A ROC-like plot for SNV performance under varying tumour purity levels in COLO829 and HCC1937 using ClairS and DeepSomatic**
+
+```{r, fig.height=4, fig.width=7.2}
+p_snv <- df |> dplyr::select(tool,celltype,purity,Precision,Recall, F1.score, TP, FP, FN) |> filter(celltype!="HCC1937_noXY") |> 
+  mutate(FN=-FN, recall_pos= FN, precision_pos = TP+FP, Precision=round(Precision,digits = 3), Recall=round(Recall, digits = 3)) |> pivot_longer(c(TP,FN,FP)) |>
+  ggplot(aes(x=value,y=purity,fill=name)) + geom_bar(stat = "identity", position = "stack") + 
+  geom_text(aes(x=recall_pos,label=Recall*100), size=2, hjust=1.1) + 
+  geom_text(aes(x=precision_pos,label=Precision*100), size=2, hjust=-.1) + 
+  facet_grid(tool~celltype,scales = "free_x", labeller = labeller(tool=public_tool_names)) + scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Count",y="Tumour purity", fill="Category") + 
+  scale_x_continuous(labels = c("40k","20k","0","20k","40k","60k"), 
+                     breaks = c(-40000,-20000,0,20000,40000,60000), expand = expansion(mult = c(0.1, 0.1))) +
+  theme(strip.background =element_rect(fill="white"), legend.position = "bottom", strip.text = element_text(size=11), axis.text = element_text(size=7.5))
+
+p_snv
+p_snv <- p_snv + theme(legend.position = "none")
+ggsave("figures/snv_purity_benchmarking.png",p_snv, height = 3, width = 7.2)
+```
+
+**Figure 3: SNV calling recall and precision under varying tumour purity levels in COLO829 and HCC1937 using ClairS and DeepSomatic**
+
+```{r,fig.height=3.2, fig.width=6.2, eval=FALSE}
+df |> dplyr::select(tool,celltype,purity,Precision,Recall, F1.score, TP, FP, FN) |> filter(celltype!="HCC1937_noXY") |> 
+  mutate(FN=-FN, recall_pos= FN, precision_pos = TP+FP) |> pivot_longer(c(TP,FN,FP)) |>
+  ggplot(aes(x=purity,y=value,fill=name)) + geom_bar(stat = "identity", position = "stack") + 
+  facet_grid(celltype~tool, scale="free_y") + scale_fill_manual(values = mypal2) + theme_bw(base_size = 12) +
+  geom_text(aes(y=recall_pos,label=Recall*100), size=2, vjust=1.1) + 
+  geom_text(aes(y=precision_pos,label=Precision*100), size=2, vjust=-.1) +
+  labs(x="Tumour purity",y="Count", fill="Category") +
+  scale_y_continuous(labels = c("40k","20k","0","20k","40k","60k"), 
+                     breaks = c(-40000,-20000,0,20000,40000,60000), expand = expansion(mult = c(0.1, 0.1))) +
+  theme(strip.background =element_rect(fill="white"), 
+        legend.position = "none",
+        strip.text = element_text(size=12), 
+        axis.text = element_text(size=8))
+
+ggsave("figures/snv_purity_benchmarking_v.png", height = 3.2, width = 7.2)
+```
+
+
+
+**What is the difference in distribution of VAF, read depth and QUAL scores between TP and FP?**
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+read_bc_vcf <- function(filename) {
+  sample <- dirname(filename) |> basename() |> str_split_i("\\.",i=1)
+  tool <- filename |> str_extract("deepsomatic|clairS")
+  if(tool=="deepsomatic") {
+    info_cols <- c("GT","GQ","DP","AD","VAF","PL" )
+    af_col <- "VAF"
+  } else {
+    info_cols <- c("GT","GQ","DP","AF","AD","NAF","NDP","NAD","AU","CU","GU","TU","NAU","NCU","NGU","NTU")
+    af_col <- "AF"
+  }
+  
+  read_tsv(filename, col_names = F) |> separate_wider_delim(cols = "X10",delim = ":",names = info_cols) |>
+    add_column(sample=sample,tool=tool) |> 
+    dplyr::select(X1, X2, X4, X5, X6, GT, DP, af_col, sample, tool) |> dplyr::rename("chr"=X1,"pos"=X2, "ref"=X4, "alt"=X5,"qual" = X6,"vaf"=af_col) |> 
+    mutate(purity=str_split_i(sample,"_",i=2), purity=ifelse(is.na(purity),"100",purity),
+           purity=factor(purity,levels=seq(10,100,10) |> as.character()))
+}
+
+df_tp <- list.files(paste0(workdir, "analysis/benchmark/snvs/somatic/R10/sup"), pattern = "tp.vcf", recursive = TRUE,full.names = T) |> keep(\(x) grepl("passed",x)) |> discard(\(x) grepl("noXY",x)) |> 
+  set_names(\(f) dirname(f) |> basename() |> str_split_i("\\.",i=1)) |> 
+  map(read_bc_vcf) |> list_rbind() |> add_column(type="TP")
+
+df_fp <- list.files(paste0(workdir, "analysis/benchmark/snvs/somatic/R10/sup"), pattern = "fp.vcf", recursive = TRUE,full.names = T) |> keep(\(x) grepl("passed",x)) |> discard(\(x) grepl("noXY",x)) |> 
+  set_names(\(f) dirname(f) |> basename() |> str_split_i("\\.",i=1)) |> 
+  map(read_bc_vcf) |> list_rbind()  |> add_column(type="FP")
+
+```
+
+
+
+```{r, fig.height=9, fig.width=7.2}
+p1 <- rbind(df_tp, df_fp) |> 
+  mutate(vaf=as.numeric(vaf), 
+         celltype=ifelse(startsWith(sample,"COLO829"), "COLO829", "HCC1937"),
+         purity=factor(purity, levels=seq(100,10,-10))) |> 
+  ggplot(aes(x=purity, y=vaf, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_grid(tool~celltype, labeller = labeller(tool=public_tool_names)) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Tumour purity",y="Allele frequency", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text.y = element_text(size=8.5), axis.text = element_text(size=7.5))
+ggsave("figures/snv_benchmarking_vaf.png", p1, height = 3, width = 7.2)
+
+p2 <- rbind(df_tp, df_fp) |> mutate(vaf=as.numeric(vaf), DP=as.numeric(DP), 
+                                    celltype=ifelse(startsWith(sample,"COLO829"), "COLO829", "HCC1937"),
+                                    purity=factor(purity, levels=seq(100,10,-10))) |> 
+  ggplot(aes(x=purity, y=qual, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_grid(tool~celltype, labeller = labeller(tool=public_tool_names), scales = "free_y") + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Tumour purity",y= "QUAL scores", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=8.5), axis.text = element_text(size=7.5))
+ggsave("figures/snv_benchmarking_qual.png", p2, height = 3, width = 7.2)
+
+p3 <- rbind(df_tp, df_fp) |> mutate(vaf=as.numeric(vaf), DP=as.numeric(DP), 
+                                    celltype=ifelse(startsWith(sample,"COLO829"), "COLO829", "HCC1937"),
+                                    purity=factor(purity, levels=seq(100,10,-10))) |> 
+  ggplot(aes(x=purity, y=DP, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_grid(tool~celltype, labeller = labeller(tool=public_tool_names)) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Tumour purity",y= "Read depth", fill="Category") + ylim(0,180)+
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=8.5), axis.text = element_text(size=7.5))
+ggsave("figures/snv_benchmarking_dp.png",p3, height = 3, width = 7.2)
+
+
+p_legend <- cowplot::get_legend(p1)
+p1 <- p1 + theme(legend.position = "none") + labs(x="")
+p2 <- p2 + theme(legend.position = "none") + labs(x="")
+p3  <- p3 + theme(legend.position = "none")
+
+p1/p2/p3/p_legend + plot_layout(heights = c(0.29,0.29,0.32,0.1))
+```
+
+
+**Figure 4: VAF, DP and QUAL score distribution of SNV true positive and false positive calls in COLO829 and HCC1937**
+
+
+```{r, fig.height=4.6, fig.width=7.2}
+rbind(df_tp, df_fp) |> mutate(vaf=as.numeric(vaf),celltype=ifelse(startsWith(sample,"COLO829"),"COLO829","HCC1937")) |> 
+  ggplot(aes(x=vaf,y=purity,fill=type)) + geom_density_ridges(alpha=.6, size=.2) + facet_grid(tool~celltype, labeller = labeller(tool=public_tool_names)) +
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(y="Tumour purity",x="Allele frequency", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=11), axis.text = element_text(size=8))
+
+ggsave("figures/snv_benchmarking_vaf_ridgeline.png", height = 4.6, width = 7.2)
+```
+
+**Figure 5: VAF distribution in ridgeline plot of SNV true positive and false positive calls in COLO829 and HCC1937**
+
+
+### Indel calling performance in samples with different tumour purity levels
+
+We also used `compare_vcf` module of `clairS` to benchmark indel calling with our pre-built gold standard indels. 
+
+
+```{r, message=FALSE, warning=FALSE}
+somatic_benchmark_indel_path <- paste0(workdir, "/analysis/benchmark/indels/somatic/R10/sup")
+
+df_indel <- list.files(path = somatic_benchmark_indel_path,pattern = "summary.txt",recursive = TRUE, full.names = TRUE) |> 
+  set_names(\(x) str_remove_all(x,pattern = c(paste0(somatic_benchmark_indel_path,"/"),"/summary.txt") |> paste(collapse = "|"))) |> 
+  map(\(x) read.table(x, header=TRUE)) |> list_rbind(names_to = "prefix") |> 
+  separate_wider_delim(prefix, delim = "/",names=c("tool","sample")) |> 
+  separate_wider_delim(sample, delim = ".", names = c("tumor","normal")) |> 
+  separate_wider_delim(tumor, delim = "_", names = c("celltype","purity"),too_few ="align_start") |> 
+  mutate(purity=ifelse(is.na(as.numeric(purity)), 100, as.numeric(purity)),
+         purity=factor(purity, levels=seq(10,100,10)))
+
+df_indel |> dplyr::select(tool,celltype,purity,Type,Precision,Recall, F1.score, TP, FP, FN) |>  knitr::kable()
+```
+
+
+```{r, fig.height=4, fig.width=7.2}
+library(facetscales)
+#library(ggpattern)
+scales_x <- list(
+  `COLO829` = scale_x_continuous(limits = c(-500, 1730), labels = c("0.5k","0","0.5k","1k","1.5k","2k"),breaks = seq(-500,2000,500)),
+  `HCC1937` = scale_x_continuous(limits = c(-4000, 8550), labels = c("4k","2k","0","2k","4k","6k","8k"), breaks = c(-4000,-2000,0,2000,4000,6000,8000))
+)
+
+temp_df_indel <- df_indel |> dplyr::select(tool,celltype,purity,Type, Precision,Recall, F1.score, TP, FP, FN) |> filter(Type=="INDEL") |> 
+  mutate(FN=-FN, recall_pos= FN, precision_pos = TP+FP, Precision=round(Precision,digits = 3), Recall=round(Recall, digits = 3))  |> pivot_longer(c(TP,FN,FP))
+
+p_indel <- df_indel |> dplyr::select(tool,celltype,purity,Type, Precision,Recall, F1.score, TP, FP, FN) |> filter(Type!="INDEL") |> 
+  mutate(FN=-FN) |> pivot_longer(c(TP,FN,FP)) |>
+  ggplot(aes(x=value,y=purity,fill=name, alpha=Type)) + geom_bar(stat = "identity",position = "stack") + 
+  scale_alpha_manual(values = c(0.6, 1)) +
+  scale_fill_manual(values = mypal2) + #scale_pattern_manual(values = c(Nerd = "stripe", NotNerd = "none"))  +
+  geom_text(data = temp_df_indel,aes(x=recall_pos,label=Recall*100), size=2, hjust=1.1,alpha=1) + 
+  geom_text(data = temp_df_indel,aes(x=precision_pos,label=Precision*100), size=2, hjust=-.1, alpha=1) + 
+  facet_grid_sc(rows = vars(tool),cols = vars(celltype), scales = list(x = scales_x), labeller = labeller(tool=public_tool_names)) +
+  theme_bw(base_size = 12) + labs(x="Count",y="Tumour purity", fill="Category") + 
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=11), axis.text = element_text(size=7.5))
+
+p_indel
+p_legend <- cowplot::get_legend(p_indel)
+ggsave("figures/legend.png",p_legend)
+
+p_indel <- p_indel + theme(legend.position = "none")
+ggsave("figures/indel_purity_benchmarking.png", p_indel, height = 3, width = 7.2)
+```
+
+
+**Figure 6: Indel calling recall and precision under varying tumour purity levels in COLO829 and HCC1937 using ClairS and DeepSomatic**
+
+**We also check the VAF, DP and QUAL score distribution between true positive and false positive calls**
+
+```{r, fig.height=9, fig.width=7.2, message=FALSE, warning=FALSE}
+df_indel_tp <- list.files(paste0(workdir,"analysis/benchmark/indels/somatic/R10/sup"), pattern = "tp.vcf", recursive = TRUE,full.names = TRUE) |>
+  set_names(\(f) dirname(f) |> basename() |> str_split_i("\\.",i=1)) |> 
+  map(read_bc_vcf) |> list_rbind() |> add_column(type="TP")
+
+df_indel_fp <- list.files(paste0(workdir,"analysis/benchmark/indels/somatic/R10/sup"), pattern = "fp.vcf", recursive = TRUE,full.names = TRUE) |> 
+  set_names(\(f) dirname(f) |> basename() |> str_split_i("\\.",i=1)) |> 
+  map(read_bc_vcf) |> list_rbind()  |> add_column(type="FP")
+
+pa <- rbind(df_indel_tp,df_indel_fp) |> mutate(vaf=as.numeric(vaf), celltype=ifelse(startsWith(sample,"COLO829"), "COLO829", "HCC1937"),
+                                               purity=factor(purity, levels=seq(100,10,-10))) |> 
+  ggplot(aes(x=purity, y=vaf, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_grid(tool~celltype, labeller = labeller(tool=public_tool_names)) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Tumour purity",y="Allele frequency", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=8.5), axis.text = element_text(size=7.5))
+ggsave("figures/indel_benchmarking_vaf.png",pa, height = 3, width = 7.2)
+
+pb <- rbind(df_indel_tp,df_indel_fp) |> mutate(vaf=as.numeric(vaf), DP=as.numeric(DP), 
+                                               celltype=ifelse(startsWith(sample,"COLO829"), "COLO829", "HCC1937"),
+                                               purity=factor(purity, levels=seq(100,10,-10))) |> 
+  ggplot(aes(x=purity, y=qual, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_grid(tool~celltype, labeller = labeller(tool=public_tool_names), scales = "free_y") + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Tumour purity",y= "QUAL scores", fill="Category") +
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=8.5), axis.text = element_text(size=7.5))
+ggsave("figures/indel_benchmarking_qual.png",pb, height = 3, width = 7.2)
+
+pc <- rbind(df_indel_tp,df_indel_fp) |> mutate(vaf=as.numeric(vaf), DP=as.numeric(DP), 
+                                               celltype=ifelse(startsWith(sample,"COLO829"), "COLO829", "HCC1937"),
+                                               purity=factor(purity, levels=seq(100,10,-10))) |> 
+  ggplot(aes(x=purity, y=DP, fill=type)) + geom_boxplot(outlier.size=.2, outlier.alpha = .2, size=.2) + 
+  facet_grid(tool~celltype, labeller = labeller(tool=public_tool_names)) + 
+  scale_fill_manual(values = mypal2) + 
+  theme_bw(base_size = 12) + labs(x="Tumour purity",y= "Read depth", fill="Category") + ylim(0,180)+
+  theme(strip.background =element_rect(fill="white"), legend.position = 'bottom', strip.text = element_text(size=8.5), axis.text = element_text(size=7.5))
+ggsave("figures/indel_benchmarking_dp.png", pc, height = 3, width = 7.2)
+
+p_legend <- cowplot::get_legend(pa)
+pa <- pa+ theme(legend.position = "none") + labs(x="")
+pb <- pb+ theme(legend.position = "none") + labs(x="")
+pc <- pc+ theme(legend.position = "none")
+pa/pb/pc/p_legend + plot_layout(heights = c(0.29,0.29,0.32,0.1))
+```
+
+**Figure 7: VAF, DP and QUAL score distribution of indel true positive and false positive calls in COLO829 and HCC1937**
+
+

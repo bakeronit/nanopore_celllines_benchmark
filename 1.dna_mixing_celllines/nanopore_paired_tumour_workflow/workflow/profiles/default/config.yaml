@@ -1,0 +1,5 @@
+cluster: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/0.pilots/snakemake-workflow/workflow/profiles/default/pbs-submit.py"
+jobs: 500
+use-envmodules: True
+printshellcmds: True
+latency-wait: "15"

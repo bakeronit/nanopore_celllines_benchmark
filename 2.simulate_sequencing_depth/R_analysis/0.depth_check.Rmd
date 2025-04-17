@@ -1,0 +1,33 @@
+---
+title: "Check the simulated bam depth"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(data.table)
+source("config.R")
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
+```
+
+I simulated sequencing depth from the original aligned bam using `samtools view`. However, since the read length vary a lot in long read sequencing, I need to check if the sequencing depths are actually right.
+
+```{r, fig.height=4,fig.width=7.8}
+list.files(paste0(workdir,"analysis/bam"), pattern="*.mosdepth.summary.txt",full.names = TRUE) |> 
+  set_names(\(x) basename(x) |> str_remove(".mosdepth.summary.txt")) |> 
+  map(\(f) fread(f) |> tail(1) |> dplyr::select(mean)) |> list_rbind(names_to = "prefix") |> 
+  separate_wider_delim(prefix,".", names=c("sample","depth")) |> 
+  separate_wider_delim(sample,"_",names = c("sample","purity"), too_few = "align_start") |> 
+  mutate(purity=ifelse(is.na(purity),"100", purity), 
+         purity=factor(purity, levels=c(100,80,60,40,"BL")),
+         sample_type=ifelse(purity=="BL", "lymphoblastoid","tumour")) |> 
+  ggplot(aes(x=depth,y=mean)) + geom_col(aes(fill=sample_type)) + scale_fill_manual(values = c("#317EC2","#E07F80")) + 
+  facet_grid(sample~purity) + theme_bw() +
+  theme(strip.text = element_text(size=10.5), strip.background = element_rect(fill='white'), legend.position = "none") +
+  labs(x="Sampling read depth", y="Actual read depth")
+ 
+ggsave("figures/bam_depth_check.png", height = 4,width = 7.8) 
+```
+
+Looks perfect, nothing to worry.

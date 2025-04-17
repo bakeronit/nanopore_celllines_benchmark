@@ -1,0 +1,470 @@
+---
+title: "Genome stratification of FP and FN"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(data.table)
+library(GenomicRanges)
+#library(VariantAnnotation)
+library(ggh4x)
+source("config.R")
+mypal2 <- colorblind_pals 
+names(mypal2) <- c("FP","FN","TP")
+rf <- colorRampPalette(rev(brewer.pal(11,'Spectral')))
+r <- rf(32)
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
+```
+
+Here, we study the genomic location of FP and FN calls with the genome stratification from GIAB. This analysis is limited on chromosome 1-22.
+
+```{r cache=TRUE}
+cds_bed <- paste0(genome_stratification_dir, "v3.4/GRCh38@all/Functional/GRCh38_refseq_cds.bed.gz")
+cds_grange <-  fread(cds_bed, col.names = c("chr","start","end")) |> dplyr::filter( chr %in% paste0("chr",c(1:22))) |> GRanges()
+lc_bed <- paste0(genome_stratification_dir, "v3.4/GRCh38@all/LowComplexity/GRCh38_AllTandemRepeats.bed.gz")
+lc_grange <-  fread(lc_bed, col.names = c("chr","start","end")) |> dplyr::filter( chr %in% paste0("chr",c(1:22))) |> GRanges()
+map_bed <- paste0(genome_stratification_dir, "v3.4/GRCh38@all/Mappability/GRCh38_lowmappabilityall.bed.gz")
+map_grange <- fread(map_bed, col.names = c("chr","start","end")) |> dplyr::filter( chr %in% paste0("chr",c(1:22))) |> GRanges()
+gc_bed <- paste0(genome_stratification_dir, "v3.4/GRCh38@all/GCcontent/GRCh38_gclt30orgt55_slop50.bed.gz")
+gc_grange <- fread(gc_bed, col.names = c("chr","start","end")) |> dplyr::filter( chr %in% paste0("chr",c(1:22))) |> GRanges()
+segdup_bed <- paste0(genome_stratification_dir, "v3.4/GRCh38@all/SegmentalDuplications/GRCh38_segdups.bed.gz")
+segdup_grange <- fread(segdup_bed, col.names = c("chr","start","end")) |> dplyr::filter( chr %in% paste0("chr",c(1:22))) |> GRanges()
+```
+
+```{r}
+overlap_with_regions <- function(vcf, variant_type="snv") {
+  category  <- basename(vcf) |>  str_remove(".vcf")
+  tool <- str_extract(vcf, c("clairS","deepsomatic") |> paste(collapse = "|"))
+  switch (variant_type,
+    snv={variant <- read_tsv(vcf,col_names =FALSE) |> dplyr::select(X1, X2) |>mutate(chr=X1, start=X2, end=X2) |> dplyr::select(chr,start,end) |> dplyr::filter( chr %in% paste0("chr",c(1:22)) ) |> GRanges()},
+    indel={variant <- read_tsv(vcf,col_names =FALSE) |> dplyr::select(X1, X2) |> mutate(chr=X1, start=X2-50,end=X2+50) |> dplyr::select(chr,start,end) |> dplyr::filter( chr %in% paste0("chr",c(1:22)) ) |> GRanges()}
+  )
+  cds <- countOverlaps(variant, cds_grange) |> table() |> as.data.frame() |> mutate(Var1=ifelse(Var1 %in% c("0","1"), as.character(Var1), "1")) |> group_by(Var1) |> summarise(Freq=sum(Freq)) |> ungroup() |> rename(Freq="refseq_cds") 
+  lc <- countOverlaps(variant, lc_grange) |> table() |> as.data.frame() |> mutate(Var1=ifelse(Var1 %in% c("0","1"), as.character(Var1), "1")) |> group_by(Var1) |> summarise(Freq=sum(Freq)) |> ungroup() |> rename(Freq="tandem_repeats") 
+  map <- countOverlaps(variant, map_grange) |> table() |> as.data.frame() |> mutate(Var1=ifelse(Var1 %in% c("0","1"), as.character(Var1), "1")) |> group_by(Var1) |> summarise(Freq=sum(Freq)) |> ungroup() |> rename(Freq="low_mappability") 
+  gc <- countOverlaps(variant, gc_grange) |> table() |> as.data.frame() |> mutate(Var1=ifelse(Var1 %in% c("0","1"), as.character(Var1), "1")) |> group_by(Var1) |> summarise(Freq=sum(Freq)) |> ungroup() |> rename(Freq="GC") 
+  segdup <- countOverlaps(variant, segdup_grange) |> table() |> as.data.frame() |> mutate(Var1=ifelse(Var1 %in% c("0","1"), as.character(Var1), "1")) |> group_by(Var1) |> summarise(Freq=sum(Freq)) |> ungroup() |> rename(Freq="segdup") 
+  full_join(cds,lc, by="Var1") |> full_join(map) |> full_join(gc) |> full_join(segdup) |> add_column(tool=tool, category=category)
+}
+```
+
+```{r cache=TRUE, message=FALSE, warning=FALSE}
+snv_df <- list.files(paste0(workdir,"analysis/benchmark/snvs/somatic/R10/sup"), pattern = "^fp.vcf|^fn.vcf", full.names = TRUE, recursive = TRUE) |> 
+  keep(\(x) grepl("passed",x)) |> discard(\(x) grepl("noXY",x)) |> 
+  set_names(\(f) dirname(f) |> str_split("/") |> map_chr(\(x) last(x)) |> str_split_i("\\.",i=1)) |> 
+  map(overlap_with_regions) |> list_rbind(names_to = "sample") |> 
+  separate_wider_delim(sample, "_",names=c("cellline","purity"), too_few = "align_start") |> 
+  mutate(purity=ifelse(is.na(purity),"100",purity), purity=factor(purity, levels=seq(100,10,-10)), Overlap=ifelse(Var1=="1", "Yes","No"))
+```
+
+
+## SNV FP and FN calls genome stratification
+
+```{r fig.height=8, fig.width=11.8}
+region_labels <- c("CDS regions","Tandem repeats", "Low mappability","GC% < 30 or >55","Segmental duplications")
+names(region_labels) <- c("refseq_cds","tandem_repeats","low_mappability","GC","segdup")
+category_labels <- c("False negative", "False positive","True positive")
+names(category_labels) <- c("fn","fp","tp")
+
+snv_df |>pivot_longer(c( tandem_repeats,low_mappability,GC, segdup)) |> 
+  ggplot(aes(x=purity,y=value,fill=Overlap)) + geom_col(position = "fill") + 
+  scale_fill_manual(values = c("#E1BE6A","#40B0A6")) +
+  facet_nested(name ~ cellline+category+tool, nest_line = TRUE,
+               labeller = labeller(name=region_labels, category=category_labels,tool=public_tool_names)) + theme_minimal(base_size = 12) +
+  labs(x="Purity", y="Proportion") + theme(strip.text.y.right = element_text(size=10), axis.text= element_text(size=5.5))
+
+ggsave("figures/snv_genome_regions.png",height = 8,width = 11.8)
+```
+## SNV FP and FN calls genome stratification with different purities merged
+
+```{r, warning=FALSE, message=FALSE,fig.height=8, fig.width=8}
+snv_df |> pivot_longer(c(tandem_repeats,low_mappability,GC, segdup)) |> 
+  ggplot(aes(x=cellline,y=value,fill=Overlap)) + geom_col(position = "fill") + 
+  scale_fill_manual(values = c("#E1BE6A","#40B0A6")) +
+  facet_nested(name ~ category+tool, nest_line = TRUE,labeller = labeller(name=region_labels, category=category_labels, tool=public_tool_names)) + 
+  theme_minimal() + theme(strip.text.y.right = element_text(size=10), axis.text= element_text(size=6)) +
+  labs(x="Cell line", y="Proportion")
+```
+
+
+```{r, warning=FALSE, message=FALSE, cache=TRUE}
+indel_df <- list.files(paste0(workdir,"analysis/benchmark/indels/somatic/R10/sup"), pattern = "^fp.vcf|^fn.vcf", full.names = TRUE, recursive = TRUE) |> 
+  set_names(\(f) dirname(f) |> str_split("/") |> map_chr(\(x) last(x)) |> str_split_i("\\.",i=1)) |> 
+  map(\(f) overlap_with_regions(f,variant_type="indel")) |> list_rbind(names_to = "sample") |> 
+  separate_wider_delim(sample, "_",names=c("cellline","purity"), too_few = "align_start") |> 
+  mutate(purity=ifelse(is.na(purity),"100",purity), purity=factor(purity, levels=seq(100,10,-10)), Overlap=ifelse(Var1=="1", "Yes","No")) 
+```
+
+
+## INDEL FP and FN calls genome stratification
+
+```{r, warning=FALSE, message=FALSE, fig.height=8, fig.width=11.8}
+indel_df |> pivot_longer(c( tandem_repeats,low_mappability,GC, segdup)) |> 
+  ggplot(aes(x=purity,y=value,fill=Overlap)) + geom_col(position = "fill") + 
+  scale_fill_manual(values = c("#E1BE6A","#40B0A6")) +
+  facet_nested(name ~ cellline+category+tool, nest_line = TRUE,
+               labeller = labeller(name=region_labels, category=category_labels, tool=public_tool_names)) + theme_minimal(base_size = 12) +
+  labs(x="Purity", y="Proportion") + theme(strip.text.y.right = element_text(size=10), axis.text= element_text(size=5.5))
+
+ggsave("figures/indel_genome_regions.png",height = 8,width = 11.8)
+```
+
+
+
+```{r}
+overlap_sv_single <- function(df, grange) {
+  df |> mutate(bp1=df[1:3] |> rename(chr1="chr", start1="start",end1="end") |> GRanges() |> countOverlaps(grange),
+               bp2=df[4:6] |> rename(chr2="chr", start2="start",end2="end") |> GRanges() |> countOverlaps(grange)) |> mutate(overlap=ifelse(bp1+bp2>0, 1, 0)) |> group_by(supp,overlap) |> summarise(n=n()) |>  ungroup() |> complete(supp,overlap,fill = list(n=0))
+}
+
+overlap_sv_with_regions <- function(vcf) {
+  tool <- str_extract(vcf, c("delly","nanomonsv","savana","severus") |> paste(collapse = "|"))
+  df1 <- read.table(vcf, comment.char = "#") |> dplyr::select(V1,V2) |> 
+    mutate(chr1=V1,start1=V2-50, end1=V2+50) |> dplyr::select(chr1,start1,end1)
+  df2 <- VariantAnnotation::readVcf(vcf) |> VariantAnnotation::info() |> as.data.frame() |> dplyr::select(CHR2,END,SUPP_VEC) |> 
+    mutate(chr2=CHR2, start2=END-50, end2=END+50,supp=SUPP_VEC) |> dplyr::select(chr2,start2,end2,supp)
+  df <-  cbind(df1,df2) |> filter(chr1 %in% valid_chr, chr2 %in% valid_chr, !chr1%in% c("chrX","chrY"), !chr2%in% c("chrX","chrY"))
+  cds <- overlap_sv_single(df, cds_grange) |> rename(n="refseq_cds")
+  lc <- overlap_sv_single(df, lc_grange) |> rename(n="tandem_repeats")
+  map <- overlap_sv_single(df, map_grange) |> rename(n="low_mappability")
+  gc <- overlap_sv_single(df, gc_grange) |> rename(n="GC")
+  segdup <- overlap_sv_single(df, segdup_grange) |> rename(n="segdup")
+  full_join(cds,lc, by=c("supp","overlap")) |> full_join(map,by=c("supp","overlap")) |> full_join(gc,by=c("supp","overlap")) |> full_join(segdup,by=c("supp","overlap")) |> add_column(tool=tool)
+}
+```
+
+```{r,cache=TRUE, message=FALSE, warning=FALSE}
+sv_df <- list.files(paste0(workdir,"analysis/benchmark/svs"),  pattern = "*\\.merged.vcf", full.names = TRUE, recursive = TRUE) |> 
+  set_names(\(f) basename(f) |> map_chr(\(x) last(x)) |> str_split_i("\\.",i=1)) |> map(overlap_sv_with_regions) |> list_rbind(names_to = "sample") |> 
+  separate_wider_delim(sample, "_",names=c("cellline","purity"), too_few = "align_start") |> 
+  mutate(purity=ifelse(is.na(purity),"100",purity), purity=factor(purity, levels=seq(100,10,-10)), Overlap=ifelse(overlap==1, "Yes","No"), category=case_when(supp=="01"~"LR novol",supp=="11" ~ "Concordant", supp=="10"~"SR specific"))
+```
+
+## SV FP and FN calls genome stratification
+
+```{r, fig.height=14.8, fig.width=12.8}
+sv_df |>
+  pivot_longer(c(tandem_repeats,low_mappability,GC, segdup)) |> 
+  ggplot(aes(x=purity,y=value,fill=Overlap)) + geom_col(position = "fill") + 
+  scale_fill_manual(values = c("#E1BE6A","#40B0A6")) +
+  facet_nested(name + category ~ cellline + tool, nest_line = TRUE,
+               labeller = labeller(name=region_labels, tool=public_tool_names)) + theme_minimal(base_size = 12) +
+  labs(x="Purity", y="Proportion") + theme(strip.text.y.right = element_text(size=10), axis.text= element_text(size=6))
+
+ggsave("figures/sv_genome_regions.png",height = 14.8,width = 12.8)
+```
+
+```{r, fig.height=5.6, fig.width=6}
+x_labels <- c("GC% < 30 or >55" , "Low mappability", "Tandem repeats","Segmental duplications")
+wrapped_x_labels <- str_wrap(x_labels, width = 12)
+sv_df |> filter(category=="LR novol", purity==100) |>  
+  pivot_longer(c(tandem_repeats,low_mappability,GC, segdup)) |>
+  mutate(name=factor(name, levels=c("GC","low_mappability","segdup","tandem_repeats"))) |> 
+  ggplot(aes(x=name,y=value,fill=Overlap)) + geom_col(position = "fill") + 
+  scale_fill_manual(values = c("#E1BE6A","#40B0A6")) +
+  scale_x_discrete(labels=wrapped_x_labels) +
+  facet_grid(tool ~ cellline,
+               labeller = labeller(name=region_labels, tool=public_tool_names)) + theme_minimal(base_size = 12) +
+  labs(x="Genome stratification", y="Proportion") + theme(strip.text.y.right = element_text(size=10), axis.text= element_text(size=7.5))
+
+#ggsave("figures/supp-figS16.pdf", width = 6, height = 5.6, dpi = "retina")
+ggsave("figures/supp-figS16.png", width = 6, height = 5.6, dpi = "retina")
+```
+
+Seem these plots don't send a strong message. I change them to heatmaps.
+
+```{r}
+y_labels <- c("GC% < 30 or >55" , "Low mappability", "Tandem repeats","Segmental duplications")
+wrapped_y_labels <- str_wrap(y_labels, width = 12)
+snv_df |> group_by(cellline, purity, tool, category) |> reframe( r_repeat = tandem_repeats[Overlap=="Yes"]/sum(tandem_repeats),
+                                                                  r_lm = low_mappability[Overlap=="Yes"]/sum(low_mappability),
+                                                                  r_gc = GC[Overlap=="Yes"]/sum(GC),
+                                                                  r_segdup = segdup[Overlap=="Yes"]/sum(segdup)) |> 
+  pivot_longer(-c(cellline,purity,tool, category)) |> filter(category=="fp") |> 
+  ggplot(aes(x=purity,y=name, fill=value)) + geom_tile(color="grey")  + scale_fill_gradientn(colors=r, trans="log10") +
+  facet_nested(tool ~ cellline, nest_line = TRUE,
+               labeller = labeller(name=region_labels, category=category_labels, tool=public_tool_names)) + 
+  scale_y_discrete( labels=wrapped_y_labels) +
+  theme_minimal(base_size = 12) +
+  labs(x="Tumour purity", y="Genomic stratification", fill="Proportion") + theme(strip.text= element_text(size=12), axis.text= element_text(size=9)) 
+  
+ggsave("figures/snv_genome_regions_heatmap.png",height = 3.6,width = 6.6, dpi = "retina")
+```
+
+```{r}
+indel_df |> 
+  mutate(tandem_repeats=replace_na(tandem_repeats,0), low_mappability=replace_na(low_mappability,0), GC=replace_na(GC,0),segdup=replace_na(segdup,0))  |> 
+  
+  group_by(cellline, purity, tool, category) |> reframe( r_repeat = tandem_repeats[Overlap=="Yes"]/sum(tandem_repeats),
+                                                                  r_lm = low_mappability[Overlap=="Yes"]/sum(low_mappability),
+                                                                  r_gc = GC[Overlap=="Yes"]/sum(GC),
+                                                                  r_segdup = segdup[Overlap=="Yes"]/sum(segdup)) |> 
+  pivot_longer(-c(cellline,purity,tool, category)) |> filter(category=="fp") |> 
+  ggplot(aes(x=purity,y=name, fill=value)) + geom_tile(color="grey")  + scale_fill_gradientn(colors=r, trans="log10") +
+  facet_nested(tool ~ cellline, nest_line = TRUE,
+               labeller = labeller(name=region_labels, category=category_labels, tool=public_tool_names)) + 
+  scale_y_discrete( labels=wrapped_y_labels) +
+  theme_minimal(base_size = 12) +
+  labs(x="Tumour purity", y="Genomic stratification", fill="Proportion") + theme(strip.text= element_text(size=12), axis.text= element_text(size=9)) 
+ggsave("figures/indel_genome_regions_heatmap.png",height = 3.6,width = 6.6, dpi = "retina")
+```
+
+```{r}
+sv_df |>
+  mutate(tandem_repeats=replace_na(tandem_repeats,0), low_mappability=replace_na(low_mappability,0), GC=replace_na(GC,0),segdup=replace_na(segdup,0))  |> 
+  
+  group_by(cellline, purity, tool, category) |> reframe( r_repeat = tandem_repeats[Overlap=="Yes"]/sum(tandem_repeats),
+                                                                  r_lm = low_mappability[Overlap=="Yes"]/sum(low_mappability),
+                                                                  r_gc = GC[Overlap=="Yes"]/sum(GC),
+                                                                  r_segdup = segdup[Overlap=="Yes"]/sum(segdup)) |> 
+  pivot_longer(-c(cellline,purity,tool, category)) |> filter(category=="LR novol") |> 
+  ggplot(aes(x=purity,y=name, fill=value)) + geom_tile()  + scale_fill_gradientn(colors=r, trans="pseudo_log") +
+  facet_nested(tool ~ cellline, nest_line = TRUE,
+               labeller = labeller(name=region_labels,tool=public_tool_names)) + 
+  scale_y_discrete( labels=wrapped_y_labels) +
+  theme_minimal(base_size = 12) +
+  labs(x="Tumour purity", y="Genomic stratification", fill="Proportion") + theme(strip.text= element_text(size=12), axis.text= element_text(size=9)) 
+
+ggsave("figures/sv_genome_regions_heatmap.png",height = 8,width = 14.6)
+```
+
+
+```{r}
+chrom_chr <- paste0("chr", 1:22)
+chrom_sizes <- read_tsv("~/working/data/genome/reference.fasta.fai", col_names = c("chrom","length")) |> dplyr::select(chrom, length) |> mutate(offset=cumsum(length) - length) 
+cyto <- read_tsv("/working/genomeinfo/share/For_Ross/sv_annotation/data/GRCh38/cytoBandIdeo.txt.gz", col_names = c("chrom","start","end","arm","stain")) |> 
+  left_join(chrom_sizes) |> filter(chrom %in% chrom_chr) |> mutate(chrom=factor(chrom,levels=chrom_chr))
+
+circos=c(gneg="#FFFFFF",
+               gpos25="#C8C8C8",
+               gpos33="#D2D2D2",
+               gpos50="#C8C8C8",
+               gpos66="#A0A0A0",
+               gpos75="#828282",
+               gpos100="#000000",
+               gpos="#000000",
+               stalk="#647FA4", #repetitive areas
+               acen="#D92F27", #centromeres
+               gvar="#DCDCDC",
+               border="black")
+```
+
+
+### COLO829 using ClairS 
+
+```{r}
+tp <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/clairS/COLO829.COLO829_BL_passed/tp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="TP")
+
+fp <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/clairS/COLO829.COLO829_BL_passed/fp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FP")
+
+fn <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/clairS/COLO829.COLO829_BL_passed/fn.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FN")
+
+distance_df <- rbind(tp,fp,fn) |> mutate(chrom=factor(chrom,levels=chrom_chr))
+
+distance_df |> 
+  ggplot( aes(x=abs_pos,y=distance, color=type)) + geom_point(alpha=.3) + geom_vline(aes(xintercept=offset), lty=2, color="darkgrey") + 
+  scale_y_log10()  + theme_bw() + scale_color_manual(values = mypal2) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, max(fn$abs_pos))) 
+
+
+ggplot() + 
+  geom_rect(data=cyto, aes(xmin=start,xmax=end, fill=stain), ymin=7.5, ymax=8.5, alpha=.8, color="black", linewidth=.1) +
+  scale_fill_manual(values = circos)+
+  geom_point(data=distance_df,aes(x=pos,y=log10(distance), color=type), alpha=.5, size=.2) + 
+  guides(colour = guide_legend(override.aes = list(size=2))) + 
+  theme_classic() + scale_color_manual(values = mypal2) + 
+  facet_grid(rows=vars(chrom)) + scale_x_continuous(expand = c(0,0), limits = c(0, chrom_sizes[chrom_sizes$chrom=="chr1",]$length), breaks = c(0,5e+7,1e+8,1.5e+8,2e+8), labels = c("0","50M","100M","150M","200M")) +
+  scale_y_continuous(breaks = c(0,4,8), labels = c("0","10k","100m"), limits = c(0,8.5)) +
+  theme(strip.text.y = element_text(angle=0), 
+        strip.text = element_text(size=8.5), 
+        axis.text = element_text(size=7), 
+        strip.background = element_blank(),
+        legend.position = c(0.8,0.35)) + 
+  labs(x="Chromosome position", y="Distance (bp) between adjacent variants", fill="Stain", color="Category")
+
+
+ggsave("figures/rainfall_by_chrom_clairS_colo829.png",height = 6, width = 6.5, dpi = "retina")
+```
+
+
+### HCC1937 using ClairS
+
+```{r}
+tp <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937.HCC1937_BL_passed/tp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="TP")
+
+fp <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937.HCC1937_BL_passed/fp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FP")
+
+fn <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937.HCC1937_BL_passed/fn.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FN")
+
+distance_df <- rbind(tp,fp,fn) |> mutate(chrom=factor(chrom,levels=chrom_chr))
+
+distance_df |> 
+  ggplot( aes(x=abs_pos,y=distance, color=type)) + geom_point(alpha=.3) + geom_vline(aes(xintercept=offset), lty=2, color="darkgrey") + 
+  scale_y_log10()  + theme_bw() + scale_color_manual(values = mypal2) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, max(fn$abs_pos))) 
+
+
+ggplot() + 
+  geom_rect(data=cyto, aes(xmin=start,xmax=end, fill=stain), ymin=7.5, ymax=8.5, alpha=.8, color="black", linewidth=.1) +
+  scale_fill_manual(values = circos)+
+  geom_point(data=distance_df,aes(x=pos,y=log10(distance), color=type), alpha=.5, size=.2) + 
+  guides(colour = guide_legend(override.aes = list(size=2))) + 
+  theme_classic() + scale_color_manual(values = mypal2) + 
+  facet_grid(rows=vars(chrom)) + scale_x_continuous(expand = c(0,0), limits = c(0, chrom_sizes[chrom_sizes$chrom=="chr1",]$length), breaks = c(0,5e+7,1e+8,1.5e+8,2e+8), labels = c("0","50M","100M","150M","200M")) +
+  scale_y_continuous(breaks = c(0,4,8), labels = c("0","10k","100m"), limits = c(0,8.5)) +
+  theme(strip.text.y = element_text(angle=0), 
+        strip.text = element_text(size=8.5), 
+        axis.text = element_text(size=7), 
+        strip.background = element_blank(),
+        legend.position = c(0.8,0.35)) + 
+  labs(x="Chromosome position", y="Distance (bp) between adjacent variants", fill="Stain", color="Category")
+
+
+ggsave("figures/rainfall_by_chrom_clairS_hcc1937.png",height = 6, width = 6.5, dpi = "retina")
+```
+
+### COLO829 using deepsomatic
+
+```{r}
+tp <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/COLO829.COLO829_BL_passed/tp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="TP")
+
+fp <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/COLO829.COLO829_BL_passed/fp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FP")
+
+fn <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/COLO829.COLO829_BL_passed/fn.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FN")
+
+distance_df <- rbind(tp,fp,fn) |> mutate(chrom=factor(chrom,levels=chrom_chr))
+
+distance_df |> 
+  ggplot( aes(x=abs_pos,y=distance, color=type)) + geom_point(alpha=.3) + geom_vline(aes(xintercept=offset), lty=2, color="darkgrey") + 
+  scale_y_log10()  + theme_bw() + scale_color_manual(values = mypal2) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, max(fn$abs_pos))) 
+
+ggplot() + 
+  geom_rect(data=cyto, aes(xmin=start,xmax=end, fill=stain), ymin=7.5, ymax=8.5, alpha=.8, color="black", linewidth=.1) +
+  scale_fill_manual(values = circos)+
+  geom_point(data=distance_df,aes(x=pos,y=log10(distance), color=type), alpha=.5, size=.2) + 
+  guides(colour = guide_legend(override.aes = list(size=2))) + 
+  theme_classic() + scale_color_manual(values = mypal2) + 
+  facet_grid(rows=vars(chrom)) + scale_x_continuous(expand = c(0,0), limits = c(0, chrom_sizes[chrom_sizes$chrom=="chr1",]$length), breaks = c(0,5e+7,1e+8,1.5e+8,2e+8), labels = c("0","50M","100M","150M","200M")) +
+  scale_y_continuous(breaks = c(0,4,8), labels = c("0","10k","100m"), limits = c(0,8.5)) +
+  theme(strip.text.y = element_text(angle=0), 
+        strip.text = element_text(size=8.5),
+        axis.text = element_text(size=7), 
+        strip.background = element_blank(),
+        legend.position = c(0.8,0.35)) + 
+  labs(x="Chromosome position", y="Distance (bp) between adjacent variants", fill="Stain", color="Category")
+
+
+ggsave("figures/rainfall_by_chrom_dpsomatic_colo829.png",height = 6, width = 6.5)
+```
+
+### HCC1937 using deepsomatic
+
+
+```{r}
+tp <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937.HCC1937_BL_passed/tp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="TP")
+
+fp <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937.HCC1937_BL_passed/fp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FP")
+
+fn <- read_tsv("../work/analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937.HCC1937_BL_passed/fn.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FN")
+
+distance_df <- rbind(tp,fp,fn) |> mutate(chrom=factor(chrom,levels=chrom_chr))
+
+distance_df |> 
+  ggplot( aes(x=abs_pos,y=distance, color=type)) + geom_point(alpha=.3) + geom_vline(aes(xintercept=offset), lty=2, color="darkgrey") + 
+  scale_y_log10()  + theme_bw() + scale_color_manual(values = mypal2) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, max(fn$abs_pos))) 
+
+ggplot() + 
+  geom_rect(data=cyto, aes(xmin=start,xmax=end, fill=stain), ymin=7.5, ymax=8.5, alpha=.8, color="black", linewidth=.1) +
+  scale_fill_manual(values = circos)+
+  geom_point(data=distance_df,aes(x=pos,y=log10(distance), color=type), alpha=.5, size=.2) + 
+  guides(colour = guide_legend(override.aes = list(size=2))) + 
+  theme_classic() + scale_color_manual(values = mypal2) + 
+  facet_grid(rows=vars(chrom)) + scale_x_continuous(expand = c(0,0), limits = c(0, chrom_sizes[chrom_sizes$chrom=="chr1",]$length), breaks = c(0,5e+7,1e+8,1.5e+8,2e+8), labels = c("0","50M","100M","150M","200M")) +
+  scale_y_continuous(breaks = c(0,4,8), labels = c("0","10k","100m"), limits = c(0,8.5)) +
+  theme(strip.text.y = element_text(angle=0),
+        strip.text = element_text(size=8.5), 
+        axis.text = element_text(size=7), 
+        strip.background = element_blank(),
+        legend.position = c(0.8,0.35)) + 
+  labs(x="Chromosome position", y="Distance (bp) between adjacent variants", fill="Stain", color="Category")
+
+ggsave("figures/rainfall_by_chrom_dpsomatic_hcc1937.png",height = 6, width = 6.5)
+```
+
+
+### rainfall plots for indels
+
+```{r}
+tp <- read_tsv("../work/analysis/benchmark/indels/somatic/R10/sup/deepsomatic/COLO829.COLO829_BL/tp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="TP")
+
+fp <- read_tsv("../work/analysis/benchmark/indels/somatic/R10/sup/deepsomatic/COLO829.COLO829_BL/fp.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FP")
+
+fn <- read_tsv("../work/analysis/benchmark/indels/somatic/R10/sup/deepsomatic/COLO829.COLO829_BL/fn.vcf", col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FN")
+
+distance_df <- rbind(tp,fp,fn) |> mutate(chrom=factor(chrom,levels=chrom_chr))
+
+distance_df |> 
+  ggplot( aes(x=abs_pos,y=distance, color=type)) + geom_point(alpha=.3) + geom_vline(aes(xintercept=offset), lty=2, color="darkgrey") + 
+  scale_y_log10()  + theme_bw() + scale_color_manual(values = mypal2) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, max(fn$abs_pos))) 
+
+ggplot() + 
+  geom_rect(data=cyto, aes(xmin=start,xmax=end, fill=stain), ymin=7.5, ymax=8.5, alpha=.8, color="black", linewidth=.1) +
+  scale_fill_manual(values = circos)+
+  geom_point(data=distance_df,aes(x=pos,y=log10(distance), color=type), alpha=.5, size=.2) + 
+  guides(colour = guide_legend(override.aes = list(size=2))) + 
+  theme_classic() + scale_color_manual(values = mypal2) + 
+  facet_grid(rows=vars(chrom)) + scale_x_continuous(expand = c(0,0), limits = c(0, chrom_sizes[chrom_sizes$chrom=="chr1",]$length), breaks = c(0,5e+7,1e+8,1.5e+8,2e+8), labels = c("0","50M","100M","150M","200M")) +
+  scale_y_continuous(breaks = c(0,4,8), labels = c("0","10k","100m"), limits = c(0,8.5)) +
+  theme(strip.text.y = element_text(angle=0), strip.text = element_text(size=8.5), axis.text = element_text(size=7.5), strip.background = element_blank()) + 
+  labs(x="Chromosome position", y="Distance (bp) between adjacent variants", fill="Stain", color="Category")
+```

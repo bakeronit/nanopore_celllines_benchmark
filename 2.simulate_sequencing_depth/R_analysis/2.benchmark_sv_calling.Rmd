@@ -1,0 +1,264 @@
+---
+title: "SV calling"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(gtools)
+library(data.table)
+library(ggh4x)
+library(VariantAnnotation)
+source("config.R")
+mypal <- colorblind_pals
+names(mypal) <- c("01","10","11")
+#sv_palette = c( "DEL"="#BC4749","INS/DUP"="#F4ACB7","INV"="#588157","TRA" = "#FF9F1C")
+sv_palette = c( "DEL"="#0081a7","INS/DUP"="#F4ACB7","INV"="#588157","TRA" = "#FF9F1C")
+
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
+```
+
+We benchmarked the SV calling over purities using 4 somatic SV callers: nanomonsv, severus, savana, and delly.
+
+```{r cache=TRUE}
+read_merged_vcf2 <- function(filename) {
+  tool <- str_extract(filename, c("delly","severus","savana","nanomonsv") |> paste(collapse = "|"))
+  prefix <- basename(filename) |> str_remove(".merged.vcf") 
+  fread(cmd = paste0("grep -v '##' ", filename, " | grep -E '^#|SUPP_VEC=10|SUPP_VEC=11' "), 
+        header = TRUE,sep = "\t") |> 
+    mutate(supp=str_split_i(INFO,";",i=18) |> str_remove("SUPP="), 
+           svtype=str_split_i(INFO, ";", i=1) |> str_remove("SVTYPE=")) |> 
+    dplyr::select(c(`#CHROM`, POS, ID, svtype,supp)) |> add_column(prefix=prefix, tool=tool)
+}
+
+df_sv <- list.files(paste0(workdir, "analysis/benchmark/svs"), pattern = "*.merged.vcf",recursive = TRUE, full.names = TRUE) |>
+  map(read_merged_vcf2) |> list_rbind() |>  
+  separate_wider_delim(prefix,".",names=c("tumor","tumor_depth","normal","normal_depth")) |>
+  mutate(purity=str_split_i(tumor,"_",i=2), 
+         purity=ifelse(is.na(purity),"100",purity),
+         purity=factor(purity,levels=seq(100,40,-20)),
+         comb=paste(tumor_depth,normal_depth,sep="-"),
+         cellline=ifelse(startsWith(tumor,'COLO829'),"COLO829","HCC1937"),
+         svtype=ifelse(svtype %in% c("INS","DUP"), "INS/DUP",svtype)) 
+
+id_levels <- df_sv |> arrange(svtype, factor(`#CHROM`, levels=mixedsort(`#CHROM`) |> unique())) |> pull(ID) |> unique()
+```
+
+### COLO829
+
+```{r, fig.height=6.4, fig.width=18}
+p1 <- df_sv |> filter(cellline=="COLO829")|>  mutate(ID=factor(ID,levels=id_levels), ) |> 
+  ggplot(aes(x=ID,y=comb,fill=svtype, alpha=supp)) + 
+  geom_tile(color="black") + 
+  facet_grid2(tool ~purity, labeller = labeller(tool=public_tool_names)) +
+  scale_alpha_manual(values = c(0.1, 1), labels = c("Missed", "Detected")) + 
+  scale_fill_manual(values = sv_palette) + theme_bw(base_size = 12) +
+  theme(axis.text.x = element_text(angle=45, hjust=1),
+    legend.position="bottom",
+    legend.direction = "horizontal",     
+    legend.margin = margin(0, 0, 0, 0), 
+    strip.background = element_rect(fill='white'),
+    strip.text = element_text(size=12),
+    axis.text.y.left = element_text(size=8),
+    axis.text.x.bottom = element_blank(), axis.ticks.x = element_blank())+  # Remove margins around the legend
+  #scale_x_discrete(labels = function(x) str_remove(x, "0_0_truthset_")) +
+  labs(x="SV gold standard", y="Read depth (tumour-normal)", alpha="", fill="SV type")
+
+p1
+p_legend <- cowplot::get_legend(p1)
+ggsave("figures/sv_legend.png", p_legend, dpi = "retina")
+p1 <- p1 + theme(legend.position = "none")
+ggsave("figures/sv_depth_heatmap_colo829.png", height = 5.6, width = 8.6, dpi = "retina")
+```
+
+
+### HCC1937
+
+because this is too long, I merged samples from different purity
+
+```{r, fig.height=6.4, fig.width=12}
+p2 <- df_sv |> filter(cellline=="HCC1937")|>  mutate(ID=factor(ID,levels=id_levels)) |> 
+  ggplot(aes(x=ID,y=comb,fill=svtype, alpha=supp)) + 
+  geom_tile(color="black") + 
+  facet_grid2(tool~svtype, scales = "free", space = "free",labeller = labeller(tool=public_tool_names),
+              strip = strip_themed(background_x = elem_list_rect(fill=sv_palette),
+                                   background_y = elem_list_rect(fill="white"))
+              ) +
+  scale_alpha_manual(values = c(0.1, 1), labels = c("Missed", "Detected")) + 
+  scale_fill_manual(values = sv_palette) + theme_bw() +
+  theme(axis.text.x = element_text(angle=45,hjust=1),
+    legend.position="bottom",
+    legend.direction = "horizontal",     
+    legend.margin = margin(0, 0, 0, 0),
+    strip.text = element_text(size=12),
+    axis.text.y.left = element_text(size=8),
+    axis.text.x.bottom = element_blank(),  axis.ticks.x = element_blank())+ 
+  labs(x="SV gold standard", y="Read depth (tumour-normal)", alpha="")
+
+p2
+p2 <- p2 + theme(legend.position = "none")
+ggsave("figures/sv_depth_heatmap_hcc1937.png", height = 5.6,width = 10.6, dpi = "retina")
+```
+
+
+Try facet_nested
+
+```{r, fig.height=5.6, fig.width=15}
+panelsize_count <- df_sv |> group_by(cellline, svtype, tumor, tool) |> summarise(n=n()) |> ungroup() |> dplyr::select(cellline, svtype,n)  |> unique() |> pull(n)
+colo829_panel <- panelsize_count[1:4]/min(panelsize_count[1:4])
+hcc1937_panel <- panelsize_count[5:8]/min(panelsize_count[5:8]) * 3.5 ## hand-made panel size in proportion. but I need hcc1937 to be slightly longer but not proportional to the total number.
+
+df_sv|>  mutate(ID=factor(ID,levels=id_levels)) |> 
+  ggplot(aes(x=ID,y=comb,fill=svtype, alpha=supp)) + 
+  geom_tile(color="black") + 
+  facet_nested(tool~cellline + svtype, scale="free_x", space = "free_x", labeller = labeller(tool=public_tool_names),
+               strip = strip_nested(background_x = elem_list_rect(fill=c(rep("white",2), rep(sv_palette,2))), 
+                                    background_y = elem_list_rect(fill="white"))) +
+  force_panelsizes(cols = c(colo829_panel, hcc1937_panel),rows = c(2,2,2,2), respect = TRUE) + 
+  scale_alpha_manual(values = c(0.1, 1), labels = c("Missed", "Detected")) + 
+  scale_fill_manual(values = sv_palette) + theme_bw() +
+  theme(axis.text.x = element_text(angle=45,hjust=1),
+    legend.position="none",
+    legend.margin = margin(0, 0, 0, 0), 
+    strip.text.x = element_text(size=7),
+    axis.text.y.left = element_text(size=6.5),
+    axis.text.x.bottom = element_blank(),  
+    axis.ticks.x = element_blank())+ 
+  labs(x="SV gold standard", y="Read depth (tumour-normal)", alpha="")
+
+ggsave("figures/sv_depth_heatmap_ggnested.png", height = 5.6, width = 15, dpi = "retina")
+```
+
+without facet_nested
+
+```{r, fig.height=5.6, fig.width=15}
+df_sv|>  mutate(ID=factor(ID,levels=id_levels), purity=factor(purity,levels=seq(10,100,10) |> as.character())) |> 
+  ggplot(aes(x=ID,y=comb,fill=svtype, alpha=supp)) + 
+  geom_tile(color="black") + 
+  facet_grid(tool~cellline, scale="free_x", space = "free_x", labeller = labeller(tool=public_tool_names)) +
+  force_panelsizes(cols = c(3,12),rows = c(2,2,2,2), respect = TRUE) + 
+  scale_alpha_manual(values = c(0.1, 1), labels = c("Missed", "Detected")) + 
+  scale_fill_manual(values = sv_palette) + theme_bw() +
+  theme(axis.text.x = element_text(angle=45,hjust=1),
+    legend.position="none",
+    legend.margin = margin(0, 0, 0, 0), 
+    axis.text.x.bottom = element_blank(),
+    strip.text = element_text(size=12),
+    axis.text.y.left = element_text(size=8),
+    axis.ticks.x = element_blank(),strip.background = element_rect(fill="white"))+ 
+  labs(x="SV gold standard", y="Read depth (tumour-normal)", alpha="")
+
+ggsave("figures/sv_depth_heatmap_ggnested2.png", height = 5.6, width = 16, dpi = "retina")
+#ggsave("figures/sv_depth_heatmap_ggnested2.pdf", height = 5.6, width = 16, dpi = "retina")
+```
+
+
+```{r, cache=TRUE}
+read_using_variantAnnotation2 <- function(filename) {
+  tool <- str_extract(filename, c("delly","severus","savana","nanomonsv") |> paste(collapse = "|"))
+  prefix <- basename(filename) |> str_remove(".merged.vcf") 
+  readVcf(filename) |> info() |> as.data.frame() |> dplyr::select(SVTYPE,SUPP,SUPP_VEC) |> rownames_to_column("id") |> add_column(prefix=prefix, tool=tool)
+}
+
+df_sv_full <- list.files(paste0(workdir, "analysis/benchmark/svs"), pattern = "*.merged.vcf",recursive = TRUE, full.names = TRUE) |> map(read_using_variantAnnotation2) |> list_rbind() |>
+  separate_wider_delim(prefix,".",names=c("tumor","tumor_depth","normal","normal_depth")) |>
+  mutate(purity=str_split_i(tumor,"_",i=2), 
+         purity=ifelse(is.na(purity),"100",purity),
+         purity=factor(purity,levels=seq(100,40,-20)),
+         comb=paste(tumor_depth,normal_depth,sep="-"),
+         cellline=ifelse(startsWith(tumor,'COLO829'),"COLO829","HCC1937"),
+         svtype=ifelse(SVTYPE %in% c("INS","DUP"), "INS/DUP",SVTYPE)) 
+```
+
+A general benchmarking
+
+```{r, fig.height=7, fig.width=15}
+temp_df_sv <- df_sv_full |> 
+  group_by(SUPP_VEC, cellline, tool, purity, comb) |> summarise(n=n(),total=sum(n)) |> 
+  ungroup() |> group_by(cellline, tool, purity, comb) |> 
+  mutate(total=sum(n[SUPP_VEC!="01"]), total_called = sum(n[SUPP_VEC!="10"]), recall=n[SUPP_VEC=="11"]/total, precision=n[SUPP_VEC=="11"]/total_called) |> 
+  mutate(recall_pos = -n[SUPP_VEC=="10"], precision_pos = total_called, recall=round(recall, digits = 4), precision = round(precision, digits = 4)) |> 
+  ungroup() |> 
+  dplyr::select(cellline,tool,purity,comb,recall,precision, recall_pos, precision_pos) |> unique()
+
+df_sv_full |> group_by(SUPP_VEC, cellline, tool, purity,comb) |> summarise(n=n()) |> ungroup() |> mutate(value=ifelse(SUPP_VEC=="10",-n, n)) |> 
+  ggplot(aes(x=value,y=comb)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("LR novel", "SR specific", "Concordant")) +
+  geom_text(data = temp_df_sv,aes(x=recall_pos,label=recall*100), size=2, hjust=1.1,alpha=1) + 
+  geom_text(data = temp_df_sv,aes(x=precision_pos,label=precision*100), size=2, hjust=-.1, alpha=1) + 
+  facet_nested(tool~cellline+purity, scales = "free_x", labeller = labeller(tool=public_tool_names)) +
+  scale_x_continuous(expand = expansion(mult = c(0.2, 0.2))) +
+  theme_bw(base_size = 12) + labs(x="Count",y="Read depth (tumour-normal)", fill="Category") + 
+  theme(strip.background =element_rect(fill="white"), legend.position = "bottom", strip.text = element_text(size=12), axis.text = element_text(size=7))
+
+ggsave("figures/sv_depth_benchmarking.png", height = 5.6, width = 14.6)
+```
+
+```{r for-presentation, echo=FALSE, eval=TRUE}
+df_sv_full |> group_by(SUPP_VEC, cellline, tool, purity,comb) |> summarise(n=n()) |> ungroup() |> mutate(value=ifelse(SUPP_VEC=="10",-n, n)) |> 
+  filter(purity==100) |> 
+  ggplot(aes(x=value,y=comb)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("LR novel", "SR specific", "Concordant")) +
+  geom_text(data = temp_df_sv |> filter(purity==100),aes(x=recall_pos,label=recall*100), size=2, hjust=1.1,alpha=1) + 
+  geom_text(data = temp_df_sv |> filter(purity==100),aes(x=precision_pos,label=precision*100), size=2, hjust=-.1, alpha=1) + 
+  facet_nested(tool~cellline, scales = "free_x", labeller = labeller(tool=public_tool_names)) +
+  scale_x_continuous(expand = expansion(mult = c(0.2, 0.2))) +
+  theme_bw(base_size = 12) + labs(x="Count",y="Read depth (tumour-normal)", fill="Category") + 
+  theme(strip.background =element_rect(fill="white"), legend.position = "bottom", strip.text = element_text(size=12), axis.text = element_text(size=7))
+
+ggsave("figures/sv_depth_benchmarking_purity100_only.png", height = 5.2, width = 4.6, dpi = "retina")
+
+df_sv_full |> group_by(SUPP_VEC, cellline, tool, purity,comb) |> summarise(n=n()) |> ungroup() |> mutate(value=ifelse(SUPP_VEC=="10",-n, n)) |> 
+  filter(purity==100, tool=="severus") |> 
+  ggplot(aes(x=value,y=comb)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("LR novel", "SR specific", "Concordant")) +
+  geom_text(data = temp_df_sv |> filter(purity==100,tool=="severus"),aes(x=recall_pos,label=recall*100), size=2, hjust=1.1,alpha=1) + 
+  geom_text(data = temp_df_sv |> filter(purity==100,tool=="severus"),aes(x=precision_pos,label=precision*100), size=2, hjust=-.1, alpha=1) + 
+  facet_nested(~cellline, scales = "free_x", labeller = labeller(tool=public_tool_names)) +
+  scale_x_continuous(expand = expansion(mult = c(0.2, 0.2))) +
+  theme_bw(base_size = 12) + labs(x="Count",y="Read depth (tumour-normal)", fill="Category") + 
+  theme(strip.background =element_rect(fill="white"), legend.position = "bottom", strip.text = element_text(size=12), axis.text = element_text(size=7))
+
+ggsave("figures/sv_depth_benchmarking_purity100_severus_only.png", height = 2.6, width = 8.6)
+
+
+df_sv|>  mutate(ID=factor(ID,levels=id_levels), purity=factor(purity,levels=seq(10,100,10) |> as.character())) |> 
+  filter(tool=="severus") |> 
+  ggplot(aes(x=ID,y=comb,fill=svtype, alpha=supp)) + 
+  geom_tile(color="black") + 
+  facet_grid(~cellline, scale="free_x", space = "free_x", labeller = labeller(tool=public_tool_names)) +
+  force_panelsizes(cols = c(3,12),rows = c(3), respect = TRUE) + 
+  scale_alpha_manual(values = c(0.1, 1), labels = c("Missed", "Detected")) + 
+  scale_fill_manual(values = sv_palette) + theme_bw() +
+  theme(axis.text.x = element_text(angle=45,hjust=1),
+    legend.position="bottom",
+    legend.margin = margin(0, 0, 0, 0), 
+    axis.text.x.bottom = element_blank(),
+    strip.text = element_text(size=12),
+    axis.text.y.left = element_text(size=8),
+    axis.ticks.x = element_blank(),strip.background = element_rect(fill="white"))+ 
+  labs(x="SV gold standard", y="", alpha="")
+
+ggsave("figures/sv_depth_serverus_only_heatmap_ggnested2.png", height = 5.6, width = 15, dpi = "retina")
+#ggsave("figures/sv_depth_serverus_only_heatmap_ggnested2.pdf", height = 5.6, width = 15, dpi = "retina")
+
+
+sv_palette = c( "#0081a7","#F4ACB7","#588157","#fb8b24")
+names(sv_palette) <- c("DEL", "INS/DUP","INV","TRA")
+df_sv |> filter(cellline=="COLO829", purity==100)|>  mutate(ID=factor(ID,levels=id_levels)) |> 
+  ggplot(aes(x=ID,y=comb,fill=svtype, alpha=supp)) + 
+  geom_tile(color="black") + 
+  facet_grid2(tool~., labeller = labeller(tool=public_tool_names)) +
+  scale_alpha_manual(values = c(0.1, 1), labels = c("Missed", "Detected")) + 
+  scale_fill_manual(values = sv_palette) + theme_bw(base_size = 12) +
+  theme(axis.text.x = element_text(angle=45, hjust=1),
+    legend.position="bottom",
+    legend.direction = "horizontal",     
+    legend.margin = margin(0, 0, 0, 0), 
+    strip.background = element_rect(fill='white'),
+    strip.text = element_text(size=12),
+    axis.text.y.left = element_text(size=8),
+    axis.text.x.bottom = element_blank(), axis.ticks.x = element_blank())+  # Remove margins around the legend
+  #scale_x_discrete(labels = function(x) str_remove(x, "0_0_truthset_")) +
+  labs(x="SV gold standard", y="Read depth (tumour-normal)", alpha="", fill="SV type")
+```
+
+```

@@ -1,0 +1,132 @@
+---
+title: "Methylation analysis"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(RColorBrewer)
+library(ggridges)
+library(ggsci)
+library(ggh4x)
+library(minfi)
+library(rtracklayer)
+library(IlluminaHumanMethylationEPICmanifest)
+source("config.R")
+rf <- colorRampPalette(rev(brewer.pal(11,'Spectral')))
+r <- rf(32)
+
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
+```
+
+The methylation modification at CpG sites were predicted with remora, and the methylation frequencies at each site were aggregated with `modkit pilup`, with 5mC and 5hmC calculated separately. Here, we compare the methylation frequency of 5mC and the epic array measures of samples to evaluate the performance.
+
+Firstly, we load the epic array results for COLO829 and HCC1937. Here, we are only interested in methylation in tumour.
+
+```{r}
+EPIC <- c("data/COLO829/204228990124_R01C01","data/COLO829_BL/204228990030_R08C01","data/HCC1937/204228990124_R02C01","data/HCC1937_BL/204228990124_R03C01")
+
+names(EPIC) <- c("COLO829","COLO829_BL","HCC1937","HCC1937_BL")
+chain_hg19Tohg38 <- "data/chain/hg19ToHg38.over.chain"
+```
+
+```{r}
+read_epic <- function(sample) {
+  grset_hg19 <- read.metharray(EPIC[sample]) |> 
+    preprocessIllumina(normalize = 'controls') |> 
+    ratioConvert() |> 
+    mapToGenome() |> dropLociWithSnps()
+  
+  beta_values <- getBeta(grset_hg19) |>  as.data.frame() |> rownames_to_column("group_name")
+  chain <- import.chain(chain_hg19Tohg38)
+  
+  grset_hg38 <- grset_hg19 |>  granges() |>  liftOver(chain) |> 
+  as.data.frame() |>  left_join(beta_values)
+  
+  names(grset_hg38)[length(names(grset_hg38))] <- "beta" 
+  grset_hg38 |> select(seqnames,start, beta) |> dplyr::rename("pos"=start,"chr"=seqnames)
+}
+
+epic_df <- names(EPIC) |> set_names() |> map(read_epic) |> list_rbind(names_to = "sample")
+
+epic_df |> filter(sample=="COLO829") |> mutate(start=pos-1) |> 
+  select(chr,start,pos,beta) |> write_tsv("data/COLO829.epic_pos.bed",col_names = FALSE)
+
+epic_df |> filter(sample=="HCC1937") |> mutate(start=pos-1) |> 
+  select(chr,start,pos, beta) |> write_tsv("data/HCC1937.epic_pos.bed",col_names = FALSE)
+```
+
+Then load the results from nanopore data
+
+```{r, cache=TRUE}
+bedtools <- "/software/bedtools/bedtools2-2.31.1/bin/bedtools"
+
+read_mod_bed <- function(filename) {
+  sample <- basename(filename) |> str_remove(".bed.gz")|> str_split_i("_",i=1)
+  epic_pos_file <- paste0("data/",sample,".epic_pos.bed")
+  cmd <- paste0("zcat ", filename, " | awk '{if($4==",'"m"', " && $10>5) print}' |", bedtools, " intersect -a ", epic_pos_file, " -b stdin -wb | awk '{print $1,$3,$4,$15}' ")
+  data.table::fread(cmd=cmd, col.names = c("chr","pos","beta","freq"))
+}
+
+df_mod <- list.files(paste0(workdir, "analysis/mod/R10/sup"), pattern = "*.bed.gz$", full.names = TRUE) |>
+  discard(\(f) grepl("_BL",f)) |>
+  set_names(\(f) basename(f) |> str_remove(".bed.gz")) |> 
+  map(read_mod_bed) |> 
+  list_rbind(names_to = "sample") |> mutate(freq=freq/100) |> 
+  separate_wider_delim(sample,"_",names=c("sample","purity"),too_few = "align_start") |> 
+  mutate(purity=ifelse(is.na(purity),"100",purity), purity=factor(purity,levels=seq(10,100,10) |> as.character()))
+```
+
+```{r, fig.height=2.4, fig.width=5.8}
+df_mod_corr <- df_mod |> group_by(sample,purity) |> na.omit() |> summarise(corr=cor(beta,freq)) |> ungroup()
+df_mod_corr |> 
+  ggplot(aes(y=sample,x=purity,fill=corr)) + geom_tile() +
+  geom_text(aes(label=round(corr*100, 2)),size=3) + scale_fill_gradient(low="lightblue",high="red") + theme_minimal() + labs(x="Purity",y="")
+
+ggsave("figures/mod_corr.png",width = 5.8,height = 2.4)
+```
+
+```{r, fig.width=12, fig.height=10}
+df_mod |> ggplot(aes(x=beta,y=freq)) + 
+  geom_bin2d(bins=25) +  
+  geom_text(data = df_mod_corr , aes(label=round(corr*100, digit=2), x=0.85,y=0.85)) +
+  scale_fill_gradientn(colors=r, trans="log10") + 
+  facet_nested_wrap(~sample + purity, ncol=5) + theme_bw() + 
+  theme(strip.background = element_rect(fill="white")) + 
+  labs(x="EPIC array beta values", y="Nanopore mod frequency", fill="Count")
+
+ggsave("figures/mod_corr_gradient.png", width = 12, height = 10)
+```
+
+```{r, fig.height=3.6, fig.width=4.2}
+colo829_dmr_pos <- epic_df |> na.omit()|> filter(startsWith(sample,"COLO829")) |> group_by(sample, chr,pos) |>
+  mutate(row = row_number()) |> 
+  pivot_wider(names_from = sample,values_from = beta) |> select(-row) |> na.omit() |> ungroup() |> 
+  filter((COLO829>0.7 & COLO829_BL<0.3) | (COLO829_BL>0.7 & COLO829<0.3)) |> 
+  mutate(type=ifelse(COLO829>0.7, "High","Low")) |> select(chr,pos,type)
+
+df_mod |> filter(startsWith(sample,"COLO829")) |> inner_join(colo829_dmr_pos) |> 
+  ggplot(aes(x=freq,y=purity, fill=type)) + geom_density_ridges(alpha=.5, size=0.05) +
+  scale_fill_manual(values = c("#d8031c","#01016f")) +
+  theme_bw() + labs(x="Frequency of methylation", y="Purity", fill="Methylation level")+
+  theme(legend.position = "bottom")
+
+ggsave("figures/colo829_dmr_purity.png", height = 3.6, width = 4.2)
+```
+
+```{r,fig.height=3.6, fig.width=4.2}
+hcc1937_dmr_pos <- epic_df |> na.omit()|> filter(startsWith(sample,"HCC1937")) |> group_by(sample, chr,pos) |>
+  mutate(row = row_number()) |> 
+  pivot_wider(names_from = sample,values_from = beta) |> select(-row) |> na.omit() |> ungroup() |> 
+  filter((HCC1937>0.7 & HCC1937_BL<0.3) | (HCC1937_BL>0.7 & HCC1937<0.3)) |> 
+  mutate(type=ifelse(HCC1937>0.7, "High","Low")) |> select(chr,pos,type)
+
+df_mod |> filter(startsWith(sample,"HCC1937")) |> inner_join(hcc1937_dmr_pos) |> 
+  ggplot(aes(x=freq,y=purity, fill=type)) + geom_density_ridges(alpha=.5, size=0.05) +
+  scale_fill_manual(values = c("#d8031c","#01016f")) +
+  theme_bw() + labs(x="Frequency of methylation", y="Purity", fill="Methylation level") +
+  theme(legend.position = "bottom")
+
+ggsave("figures/hcc1937_dmr_purity.png", height = 3.6, width = 4.2)
+```

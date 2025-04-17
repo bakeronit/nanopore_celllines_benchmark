@@ -1,0 +1,38 @@
+##### define the workdir for workflow
+workdir: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work"
+
+##### setup report #####
+configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
+#configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
+
+#report: "report/workflow.rst"
+
+localrules:
+    all,
+
+##### load rules #####
+include: "rules/common.smk"
+include: "rules/qc.smk"
+include: "rules/gather_data.smk"
+include: "rules/dorado_basecalling.smk"
+include: "rules/trim_repair.smk"  ### NOTES: I didn't use trim_repir for this project!!!!!
+include: "rules/minimap2_align.smk"
+include: "rules/methylation/methylation.smk"
+include: "rules/snv_calling/phasing.smk"
+include: "rules/snv_calling/clair3.smk"
+include: "rules/snv_calling/clairS.smk"
+include: "rules/snv_calling/deepsomatic.smk"
+include: "rules/snv_calling/deepvariant.smk"
+include: "rules/snv_calling/pepper_deepvariant_margin.smk"
+include: "rules/sv_calling/severus.smk"
+include: "rules/sv_calling/savana.smk"
+include: "rules/sv_calling/savana1.20_cnv.smk"
+include: "rules/sv_calling/nanomonsv.smk"
+include: "rules/sv_calling/delly_lr.smk"
+
+
+
+##### target rules #####
+rule all:
+    input:
+        get_final_output(),

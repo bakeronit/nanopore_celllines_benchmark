@@ -1,0 +1,399 @@
+---
+title: "How I built the gold standard with short-read data and comparison of callset and the published COLO829 gold standard"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(data.table)
+library(UpSetR)
+library(ggh4x)
+library(gtools)
+library(VariantAnnotation)
+source("config.R")
+mypal <- colorblind_pals
+names(mypal) <- c("01","10","11")
+sv_palette = c( "DEL"="#0081a7","INS/DUP"="#F4ACB7","INV"="#588157","TRA" = "#FF9F1C")
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
+```
+
+## SNV gold standard construction
+
+We had three biological replication library for cell line COLO829 and HCC1937, each sequenced with short-read illumina sequencing with high?? depth, and processed with our pipeline. I get the those SNVs that are shared by at least two libraries.
+
+For SNV, I need to atomise MNV to assure the all can be merged.
+
+```bash
+## step1: norm MNV and multiallelic sites for each callset
+for vcf in snv/*.sp.snpVcf.vcf.gz;do
+    prefix=`basename $vcf .sp.snpVcf.vcf.gz`
+    bcftools norm -a -m - -Oz -o snv/$prefix.normed.vcf.gz $vcf 
+    tabix -p vcf snv/$prefix.normed.vcf.gz
+done
+
+## step2: get the intersect
+bcftools isec snv/*.normed.vcf.gz -p isec_snv_dir/
+
+## step3: index intersect sites
+bgzip -f isec_snv_dir/sites.txt
+tabix -s1 -b2 -e2 isec_snv_dir/sites.txt.gz
+
+## step4: define TAG for vcf header
+echo "##INFO=<ID=ISEC,Number=1,Type=String,Description=\"intersection code\">" > annots.header
+
+## step 5: merge normed vcf files and  add new TAG in vcf
+bcftools merge snv/*.normed.vcf.gz |\
+    bcftools norm -m - | \
+    bcftools annotate -a isec_snv_dir/sites.txt.gz \
+    -h annots.header \
+    -c CHROM,POS,REF,ALT,ISEC \
+    --write-index -Oz -o merged_normed_isec_snv.vcf.gz##idx##merged_normed_isec_snv.vcf.gz.tbi
+
+## step6: get the at least shared-by-two snvs as gold standard.
+bcftools filter -i 'INFO/ISEC="111" | INFO/ISEC="110" | INFO/ISEC="101" | INFO/ISEC="011"'  merged_normed_isec_snv.vcf.gz |bgzip -f > merged_normed_isec_snv.goldstandard.vcf.gz
+tabix -p vcf  merged_normed_isec_snv.goldstandard.vcf.gz
+```
+
+Similar method for INDEL, just without atomisation.
+
+```bash
+## step1: get the intersect
+bcftools isec indel/*.sp.indelVcf.vcf.gz -p isec_indel_dir/
+
+## step2: index intersect sites
+bgzip -f isec_indel_dir/sites.txt
+tabix -s1 -b2 -e2 isec_indel_dir/sites.txt.gz
+
+## step3: define TAG for vcf header
+#echo "##INFO=<ID=ISEC,Number=1,Type=String,Description=\"intersection code\">" > annots.header
+
+## step4: merge normed vcf files and  add new TAG in vcf
+bcftools merge indel/*.sp.indelVcf.vcf.gz |\
+    bcftools norm -m - | \
+    bcftools annotate -a isec_indel_dir/sites.txt.gz \
+    -h annots.header \
+    -c CHROM,POS,REF,ALT,ISEC \
+    --write-index -Oz -o merged_normed_isec_indel.vcf.gz##idx##merged_normed_isec_indel.vcf.gz.tbi
+
+
+bcftools filter -i 'INFO/ISEC="111" | INFO/ISEC="110" | INFO/ISEC="101" | INFO/ISEC="011"'  merged_normed_isec_indel.vcf.gz |bgzip -f > merged_normed_isec_indel.goldstandard.vcf.gz
+tabix -p vcf  merged_normed_isec_indel.goldstandard.vcf.gz
+```
+
+>> the original calls get filtered with HOM cut-off of 6, I lift this filter by re-run `qannotate`.
+
+```bash
+for analysisPath in `cat $report |cut -d"," -f61`; do
+    raw_snp=$(find ${analysisPath} -name "*.snpVcf.vcf.gz"|grep -vE "sp|gp")
+    prefix=`basename $raw_snp .snpVcf.vcf.gz`
+    java -jar ${qannotate} --mode confidence -i $raw_snp -o snv/${prefix}.conf_homopolyer100.vcf.gz --log snv/${prefix}.qannotate.confidence.vcf.log -homCutoff 100
+    java -jar ${qannotate} --mode vcf2maf -i snv/${prefix}.conf_homopolyer100.vcf.gz -o snv/${prefix}.maf --log snv/${prefix}.qannotate.vcf2maf.log
+    zcat snv/${prefix}.Somatic.Pass.vcf.gz |bgzip > ${prefix}.tmp
+    mv ${prefix}.tmp snv/${prefix}.Somatic.Pass.vcf.gz
+    tabix -p vcf snv/${prefix}.Somatic.Pass.vcf.gz
+done
+```
+
+The number of gold standard SNVs and INDELs
+
+```{r, fig.height=4.6, fig.width=5}
+colo829 <- read_tsv(paste0(gs_dir, "vcfs/colo829/isec_hom100_snv_dir/sites.txt.gz"),col_names = c("chrom","pos","ref","alt","vec")) |> 
+  filter(chrom %in% valid_chr) |> 
+  mutate(COLO829_1=str_split_i(vec,"",1) |>  as.double(),
+         COLO829_2=str_split_i(vec,"",2) |>  as.double(),
+         COLO829_3=str_split_i(vec,"",3) |>  as.double()) |> as.data.frame()
+
+colo829 |> upset(sets=c("COLO829_3","COLO829_2","COLO829_1"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("COLO829_1","COLO829_2","COLO829_3"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("COLO829_1","COLO829_2"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("COLO829_1","COLO829_3"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("COLO829_2","COLO829_3"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+
+ggsave("figures/gs_snv_colo829.png", width = 5, height = 4.6)
+```
+
+
+```{r, fig.height=4.6, fig.width=5}
+hcc1937<- read_tsv(paste0(gs_dir, "vcfs/hcc1937/isec_hom100_snv_dir/sites.txt.gz"),col_names = c("chrom","pos","ref","alt","vec")) |> 
+  filter(chrom %in% valid_chr) |> 
+  mutate(HCC1937_1=str_split_i(vec,"",1) |>  as.double(),
+         HCC1937_2=str_split_i(vec,"",2) |>  as.double(),
+         HCC1937_3=str_split_i(vec,"",3) |>  as.double()) |> as.data.frame()
+
+hcc1937 |> upset(sets=c("HCC1937_3","HCC1937_2","HCC1937_1"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("HCC1937_1","HCC1937_2","HCC1937_3"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("HCC1937_1","HCC1937_2"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("HCC1937_1","HCC1937_3"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("HCC1937_2","HCC1937_3"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+
+ggsave("figures/gs_snv_hcc1937.png", width = 5, height = 4.6)
+```
+
+
+
+```{r, fig.height=4.6, fig.width=5}
+colo829_indel <- read_tsv(paste0(gs_dir, "vcfs/colo829/isec_indel_dir/sites.txt.gz"),col_names = c("chrom","pos","ref","alt","vec")) |> 
+  filter(chrom %in% valid_chr) |> 
+  mutate(COLO829_1=str_split_i(vec,"",1) |>  as.double(),
+         COLO829_2=str_split_i(vec,"",2) |>  as.double(),
+         COLO829_3=str_split_i(vec,"",3) |>  as.double()) |> as.data.frame()
+
+colo829_indel |> upset(sets=c("COLO829_3","COLO829_2","COLO829_1"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("COLO829_1","COLO829_2","COLO829_3"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("COLO829_1","COLO829_2"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("COLO829_1","COLO829_3"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("COLO829_2","COLO829_3"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+
+ggsave("figures/gs_indel_colo829.png", width = 5, height = 4.6)
+```
+
+
+```{r, fig.height=4.6, fig.width=5}
+hcc1937_indel <- read_tsv(paste0(gs_dir, "vcfs/hcc1937/isec_indel_dir/sites.txt.gz"),col_names = c("chrom","pos","ref","alt","vec")) |> 
+  filter(chrom %in% valid_chr) |> 
+  mutate(HCC1937_1=str_split_i(vec,"",1) |>  as.double(),
+         HCC1937_2=str_split_i(vec,"",2) |>  as.double(),
+         HCC1937_3=str_split_i(vec,"",3) |>  as.double()) |> as.data.frame()
+
+hcc1937_indel |> upset(sets=c("HCC1937_3","HCC1937_2","HCC1937_1"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("HCC1937_1","HCC1937_2","HCC1937_3"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("HCC1937_1","HCC1937_2"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("HCC1937_1","HCC1937_3"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("HCC1937_2","HCC1937_3"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+
+ggsave("figures/gs_indel_hcc1937.png", width = 5, height = 4.6)
+```
+
+
+The number of gold standard SVs
+
+- Firstly, I merged results from three tools, and get events that are presenting in at least two tools.
+
+```{r, fig.height=4.6, fig.width=5}
+colo829_sv_tools_b <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/colo829/B/colo829.colo829_bl.merged.vcf")) |> 
+  (\(x) x[seqnames(rowRanges(x)) %in% valid_chr ])() |> 
+  info() |> as.data.frame() |> 
+  dplyr::select(SVTYPE, CHR2, END, SUPP_VEC) |> 
+  mutate(delly=str_split_i(SUPP_VEC,"",1) |>  as.double(),
+         gridss=str_split_i(SUPP_VEC,"",2) |>  as.double(),
+         lumpy=str_split_i(SUPP_VEC,"",3) |>  as.double()) 
+
+colo829_sv_tools_b |> upset(sets=c("delly","gridss","lumpy"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("delly","gridss","lumpy"), color="#67A9CF",active = T), 
+                 #list(query = intersects, params = list("delly","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("gridss","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("delly","gridss"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+
+ggsave("figures/gs_sv_colo829_lib1.png", width = 5, height = 4.6)
+
+colo829_sv_tools_c <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/colo829/C/colo829.colo829_bl.merged.vcf")) |> 
+  (\(x) x[seqnames(rowRanges(x)) %in% valid_chr ])() |> 
+  info() |> as.data.frame() |> 
+  dplyr::select(SVTYPE, CHR2, END, SUPP_VEC) |> 
+  mutate(delly=str_split_i(SUPP_VEC,"",1) |>  as.double(),
+         gridss=str_split_i(SUPP_VEC,"",2) |>  as.double(),
+         lumpy=str_split_i(SUPP_VEC,"",3) |>  as.double()) 
+
+colo829_sv_tools_c |> upset(sets=c("delly","gridss","lumpy"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("delly","gridss","lumpy"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("delly","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("gridss","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("delly","gridss"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+ggsave("figures/gs_sv_colo829_lib2.png", width = 5, height = 4.6)
+
+colo829_sv_tools_d <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/colo829/D/colo829.colo829_bl.merged.vcf")) |> 
+  (\(x) x[seqnames(rowRanges(x)) %in% valid_chr ])() |> 
+  info() |> as.data.frame() |> 
+  dplyr::select(SVTYPE, CHR2, END, SUPP_VEC) |> 
+  mutate(delly=str_split_i(SUPP_VEC,"",1) |>  as.double(),
+         gridss=str_split_i(SUPP_VEC,"",2) |>  as.double(),
+         lumpy=str_split_i(SUPP_VEC,"",3) |>  as.double()) 
+
+colo829_sv_tools_d |> upset(sets=c("delly","gridss","lumpy"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("delly","gridss","lumpy"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("delly","lumpy"), color="#67A9CF",active=T),
+                 #list(query = intersects, params = list("gridss","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("delly","gridss"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+ggsave("figures/gs_sv_colo829_lib3.png", width = 5, height = 4.6)
+```
+
+- Finally, I merged concordant SVs from three libraries, and get the final gold standard.
+```{r, fig.height=4.6, fig.width=5}
+colo829_sv <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/colo829/colo829.final_merged.vcf")) |>
+  (\(x) x[seqnames(rowRanges(x)) %in% valid_chr ])() |> 
+  info() |> as.data.frame() |> 
+  dplyr::select(SVTYPE, CHR2, END, SUPP_VEC) |> 
+  mutate(COLO829_1=str_split_i(SUPP_VEC,"",1) |>  as.double(),
+         COLO829_2=str_split_i(SUPP_VEC,"",2) |>  as.double(),
+         COLO829_3=str_split_i(SUPP_VEC,"",3) |>  as.double()) 
+
+colo829_sv |> upset(sets=c("COLO829_3","COLO829_2","COLO829_1"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("COLO829_1","COLO829_2","COLO829_3"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("COLO829_1","COLO829_2"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("COLO829_1","COLO829_3"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("COLO829_2","COLO829_3"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+
+ggsave("figures/gs_sv_colo829_final.png", width = 5, height = 4.6)
+```
+
+The same for HCC1937
+
+```{r, fig.height=4.6, fig.width=5}
+hcc1937_sv_tools_a <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/hcc1937/A/hcc1937.hcc1937_bl.merged.vcf")) |> 
+  (\(x) x[seqnames(rowRanges(x)) %in% valid_chr ])() |> 
+  info() |> as.data.frame() |> 
+  dplyr::select(SVTYPE, CHR2, END, SUPP_VEC) |> 
+  mutate(delly=str_split_i(SUPP_VEC,"",1) |>  as.double(),
+         gridss=str_split_i(SUPP_VEC,"",2) |>  as.double(),
+         lumpy=str_split_i(SUPP_VEC,"",3) |>  as.double()) 
+
+hcc1937_sv_tools_a |> upset(sets=c("delly","gridss","lumpy"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("delly","gridss","lumpy"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("delly","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("gridss","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("delly","gridss"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+
+ggsave("figures/gs_sv_hcc1937_lib1.png", width = 5, height = 4.6)
+
+hcc1937_sv_tools_b <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/hcc1937/B/hcc1937.hcc1937_bl.merged.vcf")) |> 
+  (\(x) x[seqnames(rowRanges(x)) %in% valid_chr ])() |> 
+  info() |> as.data.frame() |> 
+  dplyr::select(SVTYPE, CHR2, END, SUPP_VEC) |> 
+  mutate(delly=str_split_i(SUPP_VEC,"",1) |>  as.double(),
+         gridss=str_split_i(SUPP_VEC,"",2) |>  as.double(),
+         lumpy=str_split_i(SUPP_VEC,"",3) |>  as.double()) 
+
+hcc1937_sv_tools_b |> upset(sets=c("delly","gridss","lumpy"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("delly","gridss","lumpy"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("delly","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("gridss","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("delly","gridss"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+ggsave("figures/gs_sv_hcc1937_lib2.png", width = 5, height = 4.6)
+
+hcc1937_sv_tools_c <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/hcc1937/C/hcc1937.hcc1937_bl.merged.vcf")) |> 
+  (\(x) x[seqnames(rowRanges(x)) %in% valid_chr ])() |> 
+  info() |> as.data.frame() |> 
+  dplyr::select(SVTYPE, CHR2, END, SUPP_VEC) |> 
+  mutate(delly=str_split_i(SUPP_VEC,"",1) |>  as.double(),
+         gridss=str_split_i(SUPP_VEC,"",2) |>  as.double(),
+         lumpy=str_split_i(SUPP_VEC,"",3) |>  as.double()) 
+
+hcc1937_sv_tools_c |> upset(sets=c("delly","gridss","lumpy"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("delly","gridss","lumpy"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("delly","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("gridss","lumpy"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("delly","gridss"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+ggsave("figures/gs_sv_hcc1937_lib3.png", width = 5, height = 4.6)
+```
+
+- Finally, I merged concordant SVs from three libraries, and get the final gold standard.
+```{r, fig.height=4.6, fig.width=5}
+hcc1937_sv <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/hcc1937/hcc1937.final_merged.vcf")) |>
+  (\(x) x[seqnames(rowRanges(x)) %in% valid_chr ])() |> 
+  info() |> as.data.frame() |> 
+  dplyr::select(SVTYPE, CHR2, END, SUPP_VEC) |> 
+  mutate(HCC1937_1=str_split_i(SUPP_VEC,"",1) |>  as.double(),
+         HCC1937_2=str_split_i(SUPP_VEC,"",2) |>  as.double(),
+         HCC1937_3=str_split_i(SUPP_VEC,"",3) |>  as.double()) 
+
+hcc1937_sv |> upset(sets=c("HCC1937_3","HCC1937_2","HCC1937_1"), keep.order = TRUE, main.bar.color = "darkgrey", sets.bar.color = "lightgrey",
+                 queries = list(
+                   list(query = intersects, params = list("HCC1937_1","HCC1937_2","HCC1937_3"), color="#67A9CF",active = T), 
+                 list(query = intersects, params = list("HCC1937_1","HCC1937_2"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("HCC1937_1","HCC1937_3"), color="#67A9CF",active=T),
+                 list(query = intersects, params = list("HCC1937_2","HCC1937_3"), color="#67A9CF",active=T))) |> ggplotify::as.ggplot()
+
+ggsave("figures/gs_sv_hcc1937_final.png", width = 5, height = 4.6)
+```
+
+There are published and well-constructed COLO829 truthset of 68 SV events. here I benchmark with the public one and compare the results with our gold standard set.
+
+```{r}
+read_merged_vcf <- function(filename) {
+  tool <- str_extract(filename, c("delly","severus","savana","nanomonsv") |> paste(collapse = "|"))
+  sample <- basename(filename) |> str_remove(".merged.vcf") |> str_split_i("\\.",i=1)
+  fread(cmd = paste0("grep -v '##' ", filename, " | grep -E '^#|SUPP_VEC=10|SUPP_VEC=11' "), 
+        header = TRUE,sep = "\t") |> 
+    mutate(supp=str_split_i(INFO,";",i=18) |> str_remove("SUPP="), 
+           svtype=str_split_i(INFO, ";", i=1) |> str_remove("SVTYPE=")) |> 
+    dplyr::select(c(`#CHROM`, POS, ID, svtype,supp)) |> add_column(sample=sample, tool=tool)
+}
+
+df_sv <- list.files(paste0(workdir, "analysis/benchmark_public/svs"), pattern = "*.merged.vcf",recursive = TRUE, full.names = TRUE) |> map(read_merged_vcf) |> list_rbind() |>  mutate(purity=str_split_i(sample,"_",i=2), purity=ifelse(is.na(purity),"100",purity), svtype=ifelse(svtype %in% c("INS","DUP"), "INS/DUP",svtype)) 
+
+id_levels <- df_sv |> arrange(svtype, factor(`#CHROM`, levels=mixedsort(`#CHROM`) |> unique())) |> pull(ID) |> unique()
+```
+
+```{r, fig.height=5.2, fig.width=10}
+p1 <- df_sv |>  mutate(ID=factor(ID,levels=id_levels), purity=factor(purity,levels=seq(10,100,10) |> as.character())) |> 
+  ggplot(aes(x=ID,y=purity,fill=svtype, alpha=supp)) + 
+  geom_tile(color="black") + 
+  facet_grid2(tool~svtype, scales = "free", space = "free", labeller = labeller(tool=public_tool_names),
+              strip = strip_themed(background_x = elem_list_rect(fill=sv_palette),
+                                   background_y = elem_list_rect(fill="white"))
+              ) +
+  scale_alpha_manual(values = c(0.1, 1), labels = c("Missed", "Detected")) + 
+  scale_fill_manual(values = sv_palette) + theme_bw(base_size = 12) +
+  theme(axis.text.x = element_text(angle=45, hjust=1),
+    legend.position="bottom",
+    legend.direction = "horizontal",     
+    legend.margin = margin(0, 0, 0, 0), 
+    axis.text.x.bottom = element_blank(), 
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size=10), 
+    axis.text = element_text(size=8)) +  # Remove margins around the legend
+  #scale_x_discrete(labels = function(x) str_remove(x, "0_0_truthset_")) +
+  labs(x="SV gold standard", y="Tumour purity", alpha="", fill="SV type")
+
+p1
+ggsave("figures/supp-figureS18a.pdf", height = 5.4, width = 10, dpi = "retina")
+p_legend <- cowplot::get_legend(p1)
+ggsave("figures/sv_legend.png", p_legend)
+p1 <- p1 + theme(legend.position = "none")
+ggsave("figures/sv_heatmap_colo829_public.png", height = 5, width = 10, dpi = "retina")
+```
+
+```{r, cache=TRUE, warning=FALSE}
+read_using_variantAnnotation <- function(filename) {
+  tool <- str_extract(filename, c("delly","severus","savana","nanomonsv") |> paste(collapse = "|"))
+  sample <- basename(filename) |> str_remove(".merged.vcf") |> str_split_i("\\.",i=1)
+  readVcf(filename) |> info() |> as.data.frame() |> dplyr::select(SVTYPE,SUPP,SUPP_VEC) |> rownames_to_column("id") |> add_column(sample=sample, tool=tool)
+}
+
+df_sv_full <- list.files(paste0(workdir, "analysis/benchmark_public/svs"), pattern = "*.merged.vcf",recursive = TRUE, full.names = TRUE) |> map(read_using_variantAnnotation) |> list_rbind() |>  mutate(purity=str_split_i(sample,"_",i=2), purity=ifelse(is.na(purity),"100",purity), svtype=ifelse(SVTYPE %in% c("INS","DUP"), "INS/DUP",SVTYPE), purity=factor(purity, levels=seq(10,100,10))) 
+```
+
+```{r, fig.height=2.6, fig.width=11.8}
+temp_df_sv <- df_sv_full |> 
+  group_by(SUPP_VEC,tool, purity) |> summarise(n=n(),total=sum(n)) |> 
+  ungroup() |> group_by(tool, purity) |> 
+  mutate(total=sum(n[SUPP_VEC!="01"]), total_called = sum(n[SUPP_VEC!="10"]), recall=n[SUPP_VEC=="11"]/total, precision=n[SUPP_VEC=="11"]/total_called) |> 
+  mutate(recall_pos = -n[SUPP_VEC=="10"], precision_pos = total_called, recall=round(recall, digits = 4), precision = round(precision, digits = 4)) |> 
+  ungroup() |> 
+  dplyr::select(tool,purity,recall,precision, recall_pos, precision_pos) |> unique()
+
+df_sv_full |> group_by(SUPP_VEC, tool, purity) |> summarise(n=n()) |> ungroup() |> mutate(value=ifelse(SUPP_VEC=="10",-n, n)) |> 
+  ggplot(aes(x=value,y=purity)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("FP", "FN", "TP")) +
+  geom_text(data = temp_df_sv,aes(x=recall_pos,label=recall*100), size=2, hjust=1.1,alpha=1) + 
+  geom_text(data = temp_df_sv,aes(x=precision_pos,label=precision*100), size=2, hjust=-.1, alpha=1) + 
+  facet_wrap(~tool, ncol = 4, scales = "free_x", nrow = 4, labeller = labeller(tool=public_tool_names)) +
+  scale_x_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+  theme_bw(base_size = 12) + labs(x="Count",y="Tumour purity", fill="Category") + 
+  theme(strip.background =element_rect(fill="white"), legend.position = "bottom", strip.text.y.right = element_text(size=12),
+    axis.text= element_text(size=8))
+
+#ggsave("figures/sv_purity_benchmarking_colo829_public.pdf", height = 2.6, width = 12.2, dpi = "retina")
+ggsave("figures/sv_purity_benchmarking_colo829_public.png", height = 2.6, width = 12.2, dpi = "retina")
+```
