@@ -23,6 +23,7 @@ realistic scenarios.
 - [Sequencing depth combinations](2.simulate_sequencing_depth/README.md)
 - [Variant
   calling](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md##Variant%20calling)
+- [Variant merging and benchmarking]()
 - [QC and purity
   check](1.dna_mixing_celllines/R_analysis/0.purity_and_qc.md): Rmd file
   [purity_and_qc.Rmd](1.dna_mixing_celllines/R_analysis/0.purity_and_qc.Rmd)
@@ -76,6 +77,7 @@ realistic scenarios.
   [methylation_analysis.Rmd](1.dna_mixing_celllines/R_analysis/2.methylation_analysis.Rmd)
 - [Cicos plot](3.igv_check/R_analysis/0.circos_plots.md): Rmd file
   [circos_plots.Rmd](3.igv_check/R_analysis/0.circos_plots.Rmd)
+- [IGV check](3.igv_check/README.md)
 
 ## License
 

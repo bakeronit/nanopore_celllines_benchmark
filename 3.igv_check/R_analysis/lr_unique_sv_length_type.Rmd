@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "SV length and type in LRS"
 output: github_document
 ---
 
@@ -11,14 +11,13 @@ library(introdataviz)
 colorblind_pals <- friendly_pals$contrast_three
 names(colorblind_pals) <- c("01","10","11")
 
-#sv_palette = c( "DEL"="#BC4749","INS/DUP"="#F4ACB7","INV"="#588157","TRA" = "#FF9F1C")
 sv_palette = c( "DEL"="#0081a7","INS/DUP"="#F4ACB7","INV"="#588157","TRA" = "#FF9F1C")
 suppvec_labeller <- c("11"= "TP (Concordant)", "01" = "FP (LR unique)", "10"="FN (SR unique)")
 knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
 ```
 
 
-With the hypothesis that unique SVs detected by long reads are potentially real, I investigate the type and length distribution of those SVs.
+With the premise that unique SVs detected by long reads are potentially real, I investigate the type and length distribution of those SVs.
 
 ```{r, fig.width=5.8, fig.height=3}
 df_lr_unique <- list.files("../lr_specific/bedpe", pattern="all.bedpe", full.names = TRUE) |> discard(\(x) grepl("_\\d+",x)) |> 
@@ -32,11 +31,11 @@ df_lr_unique |> ggplot(aes(x=svtype, fill=svtype)) + geom_bar() + facet_grid(cel
 ggsave("figures/figure5b.pdf", width = 5.8, height = 3,dpi = "retina")
 ```
 
-There are most DEL and INS/DUP identified by LR.
+LR unique SVs are most DEL and INS/DUP. What about their length distribution? Long read suppose can easy capture the full inserted length of deleted segment in a single read.
 
 ```{r, warning=FALSE,fig.width=6, fig.height=4.2}
-df_lr_unique |> filter(svtype!="TRA") |> group_by(svtype,suppvec) |> 
-  summarise(meanlen=median(svlen)) |> knitr::kable() 
+df_lr_unique |> filter(svtype!="TRA") |> mutate(Type=case_when(suppvec=="11"~"Concordant", suppvec=="10"~"FN (SR unique)", suppvec=="01" ~ "FP (LR unique)" )) |> group_by(svtype, Type) |> rename("SV type"=svtype) |> 
+  summarise(`Median SV length`=median(svlen)) |> ungroup() |> knitr::kable() 
 
 df_lr_unique |> filter(svtype!="TRA", suppvec!="10") |> ggplot(aes(x=svtype, y=svlen, fill=suppvec)) + 
   geom_split_violin(alpha=.5, size=.2) + scale_y_log10(labels=c("100bp","1Kbp","10Kbp","100Kbp","1Mbp","10Mbp"), breaks=c(1e+2,1e+3, 1e+4, 1e+5,1e+6,1e+7)) +
