@@ -1,50 +1,50 @@
 ---
-title: "Circos plots"
+title: "Circos plots of structural variants"
 output: github_document
 ---
 
 ```{r setup, include=FALSE}
+library(tidyverse)
 library(circlize)
+library(here)
 library(GenomicRanges)
 library(rtracklayer)
+source("config.R")
 mypal <- colorblind_pals
 names(mypal) <- c("01","10","11")
-sv_palette = c( "DEL"="#BC4749","INS" ="#F4ACB7", "DUP"="#F4ACB7","INV"="#588157","TRA" = "#FF9F1C")
 knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
 ```
 
+Here, I investigated the genome distribution of structure variants in COLO829 and HCC1937, and what genes those LR unique SVs impacted. For COLO829, the number of SVs is small to show in a Circos plot but for HCC1937 which is featured with many SVs they circos plot are not very clear.
+
 ```{r}
-gff_grange <- import.gff("~/working/data/Homo_sapiens.GRCh38.109.gff3.gz") |>  as("GRanges") 
+gff_grange <- import.gff("~/working/data/gene_models/Homo_sapiens.GRCh38.109.gff3.gz") |>  as("GRanges") 
 gene_grange <- gff_grange[gff_grange$type == "gene" & gff_grange$biotype=="protein_coding"]
 chrom_chr <- paste0("chr",1:22)
 ```
 
 ```{r}
-annotate_sv_by_bp <- function(bedpe) {
-  bp1 <- select(chr1, start1, end1)
-}
-
 df <- read_tsv("~/working/bioprojects/nanopore_celllines_benchmark/3.igv_check/lr_specific/bedpe/COLO829.COLO829_BL.all.bedpe", col_names = c("chr1","start1","chr2","start2","svtype","svlen","supp")) |> mutate(end1=start1+1, end2=start2+1) |> filter(chr1 %in% chrom_chr, chr2%in% chrom_chr)
 
-
-r1 <- df |> filter(supp=="01") |> dplyr::select(chr1, start1, end1, svtype)|> rename(chr1="chr", start1="start", end1="end") |> mutate(chr=chr |> str_remove("chr")) |> GRanges()
+r1 <- df |> filter(supp=="01") |> select(chr1, start1, end1, svtype)|> rename(chr1="chr", start1="start", end1="end") |> mutate(chr=chr |> str_remove("chr")) |> GRanges()
 
 overlaps <- findOverlaps(r1,gene_grange)
 
-gene_bp1 <- cbind(r1[queryHits(overlaps)] |> as.data.frame() |> dplyr::select(seqnames, start, end,svtype), gene_grange[subjectHits(overlaps)] |> as.data.frame() |> dplyr::select(Name)) |> 
+gene_bp1 <- cbind(r1[queryHits(overlaps)] |> as.data.frame() |> select(seqnames, start, end,svtype), gene_grange[subjectHits(overlaps)] |> as.data.frame() |> select(Name)) |> 
   mutate(chr=paste0("chr",seqnames)) |> dplyr::select(chr, start, end,svtype, Name)
 
-r2 <- df |> filter(supp=="01") |> dplyr::select(chr2, start2, end2, svtype)|> rename(chr2="chr", start2="start",end2="end") |> mutate(chr=chr |> str_remove("chr")) |> GRanges()
+r2 <- df |> filter(supp=="01") |> select(chr2, start2, end2, svtype)|> rename(chr2="chr", start2="start",end2="end") |> mutate(chr=chr |> str_remove("chr")) |> GRanges()
 
 overlaps2 <- findOverlaps(r2,gene_grange)
 
-gene_bp2 <- cbind(r1[queryHits(overlaps2)] |> as.data.frame() |> dplyr::select(seqnames, start, end, svtype), gene_grange[subjectHits(overlaps2)] |> as.data.frame() |> dplyr::select(Name)) |> 
+gene_bp2 <- cbind(r1[queryHits(overlaps2)] |> as.data.frame() |> select(seqnames, start, end, svtype), gene_grange[subjectHits(overlaps2)] |> as.data.frame() |> select(Name)) |> 
   mutate(chr=paste0("chr",seqnames)) |> dplyr::select(chr, start, end, svtype,Name)
 
 
 gene_bp <- rbind(gene_bp1, gene_bp2) |> arrange(chr, start, end) |> unique()
 ```
 
+## COLO829
 
 ```{r}
 circos.clear()
@@ -59,9 +59,8 @@ circos.genomicLabels(gene_bp, labels.column = 5, side = "inside",line_col = "gre
 circos.genomicLink(df |> dplyr::select(chr1,start1,end1), df |> dplyr::select(chr2,start2, end2), col = mypal[df$supp],lwd = 2)
 ```
 
-```{r}
+```{r, warning=FALSE}
 df <- read_tsv("~/working/bioprojects/nanopore_celllines_benchmark/3.igv_check/lr_specific/bedpe/HCC1937.HCC1937_BL.all.bedpe", col_names = c("chr1","start1","chr2","start2","svtype","svlen","supp")) |> mutate(end1=start1+1, end2=start2+1) |> filter(chr1 %in% chrom_chr, chr2%in% chrom_chr)
-
 
 r1 <- df |> filter(supp=="01") |> dplyr::select(chr1, start1, end1,svtype)|> rename(chr1="chr", start1="start",end1="end") |> mutate(chr=chr |> str_remove("chr")) |> GRanges()
 
@@ -77,12 +76,12 @@ overlaps2 <- findOverlaps(r2,gene_grange)
 gene_bp2 <- cbind(r1[queryHits(overlaps2)] |> as.data.frame() |> dplyr::select(seqnames, start, end, svtype), gene_grange[subjectHits(overlaps2)] |> as.data.frame() |> dplyr::select(Name)) |> 
   mutate(chr=paste0("chr",seqnames)) |> dplyr::select(chr, start, end, svtype,Name)
 
-
 gene_bp <- rbind(gene_bp1, gene_bp2) |> arrange(chr, start, end) |> unique()
-
 ```
 
-```{r}
+## HCC1937
+
+```{r, warning=FALSE}
 circos.clear()
 circos.par("start.degree" = 90)
 circos.initializeWithIdeogram(plotType = c("ideogram", "labels"), chromosome.index=chrom_chr)
@@ -96,7 +95,7 @@ circos.genomicLink(df |> dplyr::select(chr1,start1,end1), df |> dplyr::select(ch
 ```
 
 
-```{r}
+```{r eval=FALSE}
 vcf <- "~/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/benchmark/svs/R10_sup_COLO829.COLO829_BL.all_merged.vcf"
 vcf <- "~/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/benchmark/svs/R10_sup_HCC1937.HCC1937_BL.all_merged.vcf"
 df1 <- read.table(vcf, comment.char = "#") |> dplyr::select(V1,V2) |> 

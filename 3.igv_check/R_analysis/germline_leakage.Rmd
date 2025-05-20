@@ -7,17 +7,17 @@ output: github_document
 library(tidyverse)
 library(here)
 library(ggh4x)
-public_tool_names = c("clairS" = "ClairS", "deepsomatic" = "DeepSomatic", "delly"="Delly","nanomonsv" = "nanomonsv", "savana" = "SAVANA", "severus"= "Severus")
+source("config.R")
 knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center', fig.retina=2)
 ```
 
-Somatic variant detection pipelines can mistakenly identify germline variants as somatic ones, a process called “germline leakage”. Here I evaluate how germline leakage affected by tumour purity and sequencing depth. To estimate the germline leakage rate, calculate the proportion of SNVs in the somatic calls with a max population frequency > 0.1 in the gnomAD database. Note that this is just a rough estimate which help me to compare across conditions.
+Somatic variant detection pipelines can mistakenly identify germline variants as somatic ones, a process called “germline leakage”. Here I evaluate how germline leakage affected by tumour purity and sequencing depth. To estimate the germline leakage rate, calculate the proportion of SNVs in the somatic calls with a max population frequency > 0.1 in the gnomAD database using script [gnomad_anno.py](../../1.dna_mixing_celllines/scripts/gnomad_anno.py). Note that this is just a rough estimate which help me to compare across conditions.
 
 ```{r, fig.width=6, fig.height=3}
 cols<- c("chrom","pos","ref","alt","qual","vaf","depth","freq")
 
-leakage_purity <- list.files(path = "~/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/snvs", full.names = TRUE, recursive = TRUE, pattern = "^snv_gnomad_af_anno.tsv$" ) |> 
-  map(\(x) read_tsv(x, col_names=cols) |> add_column(prefix=x)) |> list_rbind() |> mutate(sample=str_split_i(prefix, "/",i=16), tool=str_split_i(prefix,"/",i=13)) |> 
+leakage_purity <- list.files(path = paste0(purity_workdir,"analysis/snvs"), full.names = TRUE, recursive = TRUE, pattern = "^snv_gnomad_af_anno.tsv$" ) |> 
+  map(\(x) read_tsv(x, col_names=cols) |> add_column(prefix=x)) |> list_rbind() |> mutate(sample=str_split_i(prefix, "/",i=14), tool=str_split_i(prefix,"/",i=11)) |> 
   separate_wider_delim(sample,delim = ".", names = c("tumour","normal")) |> select(-prefix) |> 
   filter(!(chrom=="chrX" & normal=="HCC1937_BL")) |> 
   group_by(tumour,tool) |> summarise(n=n(), prop=mean(freq > 0.1, na.rm = TRUE)) |> ungroup() |> 
@@ -39,8 +39,8 @@ Seems the tumour purity didn't impact much in terms of germline leakage. However
 **How about sequencing depth?**
 
 ```{r, fig.width=6, fig.height=3.2}
-leakage_depth <- list.files(path = "~/working/bioprojects/nanopore_celllines_benchmark/2.simulate_sequencing_depth/analysis/snvs", full.names = TRUE, recursive = TRUE, pattern = "^snv_gnomad_af_anno.tsv$" ) |> 
-  map(\(x) read_tsv(x, col_names=cols) |> add_column(prefix=x)) |> list_rbind() |> mutate(sample=str_split_i(prefix, "/",i=13), tool=str_split_i(prefix,"/",i=12)) |> 
+leakage_depth <- list.files(path = paste0(depth_workdir, "analysis/snvs"), full.names = TRUE, recursive = TRUE, pattern = "^snv_gnomad_af_anno.tsv$" ) |> 
+  map(\(x) read_tsv(x, col_names=cols) |> add_column(prefix=x)) |> list_rbind() |> mutate(sample=str_split_i(prefix, "/",i=11), tool=str_split_i(prefix,"/",i=10)) |> 
   separate_wider_delim(sample,delim = ".", names = c("tumour","t_depth","normal","n_depth")) |> select(-prefix) |> 
   filter(!(chrom=="chrX" & normal=="HCC1937_BL")) |> 
   group_by(tumour,t_depth, n_depth, tool,) |> summarise(n=n(), prop=mean(freq > 0.1, na.rm = TRUE)) |> ungroup() |> 

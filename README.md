@@ -23,12 +23,16 @@ realistic scenarios.
 - [Sequencing depth combinations](2.simulate_sequencing_depth/README.md)
 - [Variant
   calling](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md##Variant%20calling)
+- [QC and purity
+  check](1.dna_mixing_celllines/R_analysis/0.purity_and_qc.md): Rmd file
+  [purity_and_qc.Rmd](1.dna_mixing_celllines/R_analysis/0.purity_and_qc.Rmd)
 
 ### Downstream analysis and plots
 
 - [Construct gold
   standard](1.dna_mixing_celllines/R_analysis/x.gold_standard.md): Rmd
-  file [gold_standard.Rmd](1.dna_mixing_celllines/x.gold_standard.Rmd)
+  file
+  [gold_standard.Rmd](1.dna_mixing_celllines/R_analysis/x.gold_standard.Rmd)
 - [Tumour purity affects SNV and indel
   calling](1.dna_mixing_celllines/R_analysis/1.benchmark_snv_calling.md):
   Rmd file
@@ -37,20 +41,43 @@ realistic scenarios.
   calling](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md):
   Rmd file
   [benchmark_sv_calling.Rmd](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md)
-- [Sequencing depth affects SNV and indel calling]()
-- [Sequencing depth affects SV calling]()
-- [Genomic regions of false positive calls]()
-- [Mutational signature analysis]()
-- [Germline leakage]()
-- [SV type and length in LR]()
+- [Sequencing depth affects SNV and indel
+  calling](2.simulate_sequencing_depth/R_analysis/1.benchmark_snv_calling.md):
+  Rmd file
+  [benchmark_snv_calling.Rmd](2.simulate_sequencing_depth/R_analysis/1.benchmark_snv_calling.Rmd)
+- [Sequencing depth affects SV
+  calling](2.simulate_sequencing_depth/R_analysis/2.benchmark_sv_calling.md):
+  Rmd file
+  [benchmark_sv_calling.Rmd](2.simulate_sequencing_depth/R_analysis/2.benchmark_sv_calling.Rmd)
+- [Mutational signature
+  analysis](1.dna_mixing_celllines/R_analysis/1.snv_mutational_signature.md):
+  Rmd file
+  [snv_mutational_signature.Rmd](1.dna_mixing_celllines/R_analysis/1.snv_mutational_signature.Rmd)
+- [Genomic regions of false positive
+  calls](1.dna_mixing_celllines/R_analysis/4.genome_regions.md): Rmd
+  file
+  [genome_regions.Rmd](1.dna_mixing_celllines/R_analysis/4.genome_regions.Rmd)
+- [Germline leakage](3.igv_check/R_analysis/germline_leakage.md): Rmd
+  file
+  [germline_leakage.Rmd](3.igv_check/R_analysis/germline_leakage.Rmd)
+- [SV type and length in
+  LR](3.igv_check/R_analysis/lr_unique_sv_length_type.md): Rmd file
+  [lr_unique_length_type.Rmd](3.igv_check/R_analysis/lr_unique_sv_length_type.Rmd)
 
 ### Miscellaneous
 
-- [Sequencing depth check]()
-- [Methylation analysis]()
-- [Cicos plot]()
+- [Sequencing depth
+  check](2.simulate_sequencing_depth/R_analysis/0.depth_check.md): Rmd
+  file
+  [depth_check.Rmd](2.simulate_sequencing_depth/R_analysis/0.depth_check.Rmd)
+- [Methylation
+  analysis](1.dna_mixing_celllines/R_analysis/2.methylation_analysis.md):
+  Rmd file
+  [methylation_analysis.Rmd](1.dna_mixing_celllines/R_analysis/2.methylation_analysis.Rmd)
+- [Cicos plot](3.igv_check/R_analysis/0.circos_plots.md): Rmd file
+  [circos_plots.Rmd](3.igv_check/R_analysis/0.circos_plots.Rmd)
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](L)
-file for details.
+This project is licensed under the MIT License. See the
+[LICENSE](LICENSE) file for details.

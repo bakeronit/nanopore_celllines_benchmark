@@ -1,6 +1,6 @@
 ## Base calling and read alignment
 
-Raw POD5 files from Nanopore Promethion sequencing was obtained from QIMR Berghofer. A complete list of all these files is provided as [sample_list.csv](config/sample_list.csv), the POD5 file is hug (66Tb) for any platform to host thus request by email the author.
+Raw POD5 files from Nanopore Promethion sequencing was obtained from QIMR Berghofer. A complete list of all these files is provided as [sample_list.csv](sample_list.csv), the POD5 file is hug (66Tb) for any platform to host thus request by email the author.
 
 Base calling was performed using [Dorado](https://github.com/nanoporetech/dorado) version [0.5.1](https://github.com/nanoporetech/dorado/releases/tag/v0.5.1) with canonical model [dna_r10.4.1_e8.2_400bps_sup@v4.3.0](https://github.com/nanoporetech/dorado?tab=readme-ov-file#dna-models) and remora model [dna_r10.4.1_e8.2_400bps_sup@v4.3.0_5mCG_5hmCG@v1](https://github.com/nanoporetech/dorado?tab=readme-ov-file#dna-models). The command line used was described in [dorado_basecalling.smk](workflow/rules/dorado_basecalling.smk).
 
