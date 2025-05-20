@@ -18,9 +18,9 @@ In this study, we evaluated the performance of long-read sequencing (LRS) for de
 
 ### Raw data processing
 
- - [Base calling and read alignment for cell line mixtures](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/workflow/README.md)
- - [Sequencing depth combinations](README.md)
- - [Variant calling](README.md)
+ - [Base calling and read alignment for cell line mixtures](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md##Base calling and read alignment)
+ - [Sequencing depth combinations](2.simulate_sequencing_depth/README.md)
+ - [Variant calling](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md##Variant calling)
  
 ### Downstream analysis and plots
 

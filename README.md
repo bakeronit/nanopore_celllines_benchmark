@@ -19,9 +19,10 @@ realistic scenarios.
 ### Raw data processing
 
 - [Base calling and read alignment for cell line
-  mixtures](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/workflow/README.md)
-- [Sequencing depth combinations](README.md)
-- [Variant calling](README.md)
+  mixtures](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md##Base%20calling%20and%20read%20alignment)
+- [Sequencing depth combinations](2.simulate_sequencing_depth/README.md)
+- [Variant
+  calling](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md##Variant%20calling)
 
 ### Downstream analysis and plots
 
