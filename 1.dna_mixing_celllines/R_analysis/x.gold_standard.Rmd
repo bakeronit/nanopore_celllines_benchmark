@@ -1,5 +1,5 @@
 ---
-title: "How I built the gold standard with short-read data and comparison of callset and the published COLO829 gold standard"
+title: "Gold standard variants from short-read sequencing"
 output: github_document
 ---
 
@@ -81,7 +81,7 @@ bcftools filter -i 'INFO/ISEC="111" | INFO/ISEC="110" | INFO/ISEC="101" | INFO/I
 tabix -p vcf  merged_normed_isec_indel.goldstandard.vcf.gz
 ```
 
->> the original calls get filtered with HOM cut-off of 6, I lift this filter by re-run `qannotate`.
+> the original calls get filtered with HOM cut-off of 6, I lift this filter by re-run `qannotate`.
 
 ```bash
 for analysisPath in `cat $report |cut -d"," -f61`; do
@@ -170,9 +170,31 @@ ggsave("figures/gs_indel_hcc1937.png", width = 5, height = 4.6)
 ```
 
 
-The number of gold standard SVs
+## SV gold standard
 
-- Firstly, I merged results from three tools, and get events that are presenting in at least two tools.
+- Firstly, I convert all VCF into simple format using [simple_event_annotation.py](scripts/simple_event_annotation.py) and filtered for SV that are great than 50bp in size.
+
+```bash
+python simple_event_annotation.py {input.gridss} -t gridss | bcftools view -f 'PASS,.' | bcftools filter -i '( (SVTYPE="DUP" || SVTYPE="DEL" || SVTYPE="INV") && SVLEN>=50 ) || (SVTYPE="INS") || (SVTYPE="TRA")' > {output.gridss}
+python simple_event_annotation.py {input.delly} -t delly | bcftools view -f 'PASS,.' | bcftools filter -i '( (SVTYPE="DUP" || SVTYPE="DEL" || SVTYPE="INV" || SVTYPE="INS") && SVLEN>=50 ) || (SVTYPE="TRA")' > {output.delly}
+python simple_event_annotation.py {input.lumpy} -t lumpy | bcftools view -f 'PASS,.' | bcftools filter -i '( (SVTYPE="DUP" || SVTYPE="DEL" || SVTYPE="INV" || SVTYPE="INS") && SVLEN>=50 ) || (SVTYPE="TRA")' > {output.lumpy}
+```
+
+- Then I merged results from three tools using [Jasmine](https://github.com/mkirsche/Jasmine), and get events that are presenting in at least two tools using `bcftools`.
+
+```bash
+jasmine --preprocess_only --pre_normalize --dup_to_ins file_list={imple_filelist} out_dir={out_dir} genome_file={genome}
+
+jasmine file_list={out_dir}/{tumor}.{normal}.delly.simple_dupToIns_normalizeTypes.vcf max_dist=200 --allow_intrasample --comma_filelist --use_end --ignore_strand --nonlinear_dist out_file={out_dir}/{tumor}.{normal}.delly.refined.vcf
+jasmine file_list={out_dir}/{tumor}.{normal}.gridss.simple_dupToIns_normalizeTypes.vcf max_dist=200 --allow_intrasample --comma_filelist --use_end --ignore_strand --nonlinear_dist out_file={out_dir}/{tumor}.{normal}.gridss.refined.vcf
+jasmine file_list={out_dir}/{tumor}.{normal}.lumpy.simple_dupToIns_normalizeTypes.vcf max_dist=200 --allow_intrasample --comma_filelist --use_end --ignore_strand --nonlinear_dist out_file={out_dir}/{tumor}.{normal}.lumpy.refined.vcf
+
+ls {out_dir}/*.refined.vcf > {out_dir}/refined_files.txt
+jasmine file_list={out_dir}/refined_files.txt out_file={merged} --use_end --ignore_strand
+
+bcftools filter -i 'SUPP>1' {merged} > final_merged.supp2_dupToIns.vcf
+```
+
 
 ```{r, fig.height=4.6, fig.width=5}
 colo829_sv_tools_b <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/colo829/B/colo829.colo829_bl.merged.vcf")) |> 
@@ -299,6 +321,7 @@ ggsave("figures/gs_sv_hcc1937_lib3.png", width = 5, height = 4.6)
 ```
 
 - Finally, I merged concordant SVs from three libraries, and get the final gold standard.
+
 ```{r, fig.height=4.6, fig.width=5}
 hcc1937_sv <- readVcf(paste0(gs_dir,"structural_variation/analysis/svs/jasmine_merge/hcc1937/hcc1937.final_merged.vcf")) |>
   (\(x) x[seqnames(rowRanges(x)) %in% valid_chr ])() |> 
@@ -318,7 +341,7 @@ hcc1937_sv |> upset(sets=c("HCC1937_3","HCC1937_2","HCC1937_1"), keep.order = TR
 ggsave("figures/gs_sv_hcc1937_final.png", width = 5, height = 4.6)
 ```
 
-There are published and well-constructed COLO829 truthset of 68 SV events. here I benchmark with the public one and compare the results with our gold standard set.
+There are published and well-constructed COLO829 [truthset](https://www.sciencedirect.com/science/article/pii/S2666979X22000726) of 68 SV events. here I benchmark with the public one and compare the results with our gold standard set.
 
 ```{r}
 read_merged_vcf <- function(filename) {

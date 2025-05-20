@@ -17,4 +17,5 @@ miscellanous/
 **/*.vcf.gz.tbi
 **/*_cache/
 **/config/
+**/profiles/
 1.dna_mixing_celllines/0.purity_check/in_silico/

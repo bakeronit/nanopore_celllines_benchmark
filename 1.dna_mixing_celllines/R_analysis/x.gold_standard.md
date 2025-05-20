@@ -1,5 +1,4 @@
-How I built the gold standard with short-read data and comparison of
-callset and the published COLO829 gold standard
+Gold standard variants from short-read sequencing
 ================
 
 ## SNV gold standard construction
@@ -68,8 +67,8 @@ bcftools filter -i 'INFO/ISEC="111" | INFO/ISEC="110" | INFO/ISEC="101" | INFO/I
 tabix -p vcf  merged_normed_isec_indel.goldstandard.vcf.gz
 ```
 
-> > the original calls get filtered with HOM cut-off of 6, I lift this
-> > filter by re-run `qannotate`.
+> the original calls get filtered with HOM cut-off of 6, I lift this
+> filter by re-run `qannotate`.
 
 ``` bash
 for analysisPath in `cat $report |cut -d"," -f61`; do
@@ -93,10 +92,34 @@ The number of gold standard SNVs and INDELs
 
 <img src="x.gold_standard_files/figure-gfm/unnamed-chunk-4-1.png" width="480" style="display: block; margin: auto;" />
 
-The number of gold standard SVs
+## SV gold standard
 
-- Firstly, I merged results from three tools, and get events that are
-  presenting in at least two tools.
+- Firstly, I convert all VCF into simple format using
+  [simple_event_annotation.py](scripts/simple_event_annotation.py) and
+  filtered for SV that are great than 50bp in size.
+
+``` bash
+python simple_event_annotation.py {input.gridss} -t gridss | bcftools view -f 'PASS,.' | bcftools filter -i '( (SVTYPE="DUP" || SVTYPE="DEL" || SVTYPE="INV") && SVLEN>=50 ) || (SVTYPE="INS") || (SVTYPE="TRA")' > {output.gridss}
+python simple_event_annotation.py {input.delly} -t delly | bcftools view -f 'PASS,.' | bcftools filter -i '( (SVTYPE="DUP" || SVTYPE="DEL" || SVTYPE="INV" || SVTYPE="INS") && SVLEN>=50 ) || (SVTYPE="TRA")' > {output.delly}
+python simple_event_annotation.py {input.lumpy} -t lumpy | bcftools view -f 'PASS,.' | bcftools filter -i '( (SVTYPE="DUP" || SVTYPE="DEL" || SVTYPE="INV" || SVTYPE="INS") && SVLEN>=50 ) || (SVTYPE="TRA")' > {output.lumpy}
+```
+
+- Then I merged results from three tools using
+  [Jasmine](https://github.com/mkirsche/Jasmine), and get events that
+  are presenting in at least two tools using `bcftools`.
+
+``` bash
+jasmine --preprocess_only --pre_normalize --dup_to_ins file_list={imple_filelist} out_dir={out_dir} genome_file={genome}
+
+jasmine file_list={out_dir}/{tumor}.{normal}.delly.simple_dupToIns_normalizeTypes.vcf max_dist=200 --allow_intrasample --comma_filelist --use_end --ignore_strand --nonlinear_dist out_file={out_dir}/{tumor}.{normal}.delly.refined.vcf
+jasmine file_list={out_dir}/{tumor}.{normal}.gridss.simple_dupToIns_normalizeTypes.vcf max_dist=200 --allow_intrasample --comma_filelist --use_end --ignore_strand --nonlinear_dist out_file={out_dir}/{tumor}.{normal}.gridss.refined.vcf
+jasmine file_list={out_dir}/{tumor}.{normal}.lumpy.simple_dupToIns_normalizeTypes.vcf max_dist=200 --allow_intrasample --comma_filelist --use_end --ignore_strand --nonlinear_dist out_file={out_dir}/{tumor}.{normal}.lumpy.refined.vcf
+
+ls {out_dir}/*.refined.vcf > {out_dir}/refined_files.txt
+jasmine file_list={out_dir}/refined_files.txt out_file={merged} --use_end --ignore_strand
+
+bcftools filter -i 'SUPP>1' {merged} > final_merged.supp2_dupToIns.vcf
+```
 
 <img src="x.gold_standard_files/figure-gfm/unnamed-chunk-5-1.png" width="480" style="display: block; margin: auto;" /><img src="x.gold_standard_files/figure-gfm/unnamed-chunk-5-2.png" width="480" style="display: block; margin: auto;" /><img src="x.gold_standard_files/figure-gfm/unnamed-chunk-5-3.png" width="480" style="display: block; margin: auto;" />
 
@@ -110,11 +133,13 @@ The same for HCC1937
 
 - Finally, I merged concordant SVs from three libraries, and get the
   final gold standard.
-  <img src="x.gold_standard_files/figure-gfm/unnamed-chunk-8-1.png" width="480" style="display: block; margin: auto;" />
 
-There are published and well-constructed COLO829 truthset of 68 SV
-events. here I benchmark with the public one and compare the results
-with our gold standard set.
+<img src="x.gold_standard_files/figure-gfm/unnamed-chunk-8-1.png" width="480" style="display: block; margin: auto;" />
+
+There are published and well-constructed COLO829
+[truthset](https://www.sciencedirect.com/science/article/pii/S2666979X22000726)
+of 68 SV events. here I benchmark with the public one and compare the
+results with our gold standard set.
 
 <img src="x.gold_standard_files/figure-gfm/unnamed-chunk-10-1.png" width="960" style="display: block; margin: auto;" />
 

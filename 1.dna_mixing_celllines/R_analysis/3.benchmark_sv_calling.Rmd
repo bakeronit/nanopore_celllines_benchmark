@@ -21,7 +21,7 @@ knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = F
 
 We benchmarked the SV calling over purities using 4 somatic SV callers: nanomonsv, severus, savana, and delly.
 
-**1.delly**
+**1.Delly**
 
 ```bash
 export OMP_NUM_THREADS=2 # delly primarily parallises on the sample level.
@@ -65,7 +65,7 @@ tail -n +2 $output |grep PASS >> $passed_output
 python3 misc/sv_type.py $passed_output $passed_outptu_with_svtype
 ```
 
-**3.SAVANA***
+**3.SAVANA**
 
 ```bash
 savana --tumour $tumour_bam \
@@ -86,6 +86,11 @@ savana --tumour $tumour_bam \
             --vntr-bed $vntr_bed \
             --phasing-vcf $phased_vcf
 ```
+
+### The benchmarking of SV calling
+
+We used Jasmine to preprocess LR SVs and to merge them with short-read gold standard SV for each cell line as described in [benchmark_sv.smk](../nanopore_paired_tumour_workflow/workflow/benchmark_sv.smk).
+
 
 ```{r}
 read_merged_vcf <- function(filename) {
@@ -133,7 +138,6 @@ p1 <- p1 + theme(legend.position = "none")
 ggsave("figures/sv_heatmap_colo829.png", height = 5.6, width = 8)
 ```
 
-
 ### HCC1937
 
 ```{r, fig.height=5.6, fig.width=12}
@@ -161,8 +165,7 @@ p2 <- p2 + theme(legend.position = "none")
 ggsave("figures/sv_heatmap_hcc1937.png", height = 5.6,width = 16)
 ```
 
-
-Try facet_nested
+Try to visualise with facet_nested
 
 ```{r, fig.height=5.6, fig.width=16}
 panelsize_count <- df_sv |> group_by(cellline, svtype, sample, tool) |> summarise(n=n()) |> ungroup() |> dplyr::select(cellline, svtype,n)  |> unique() |> pull(n)
@@ -191,7 +194,8 @@ df_sv|>  mutate(ID=factor(ID,levels=id_levels), purity=factor(purity,levels=seq(
 ggsave("figures/sv_heatmap_ggnested.png", height = 5.6, width = 16)
 ```
 
-without facet_nested
+Try to visualise without facet_nested
+
 ```{r, fig.height=5.6, fig.width=15}
 df_sv|>  mutate(ID=factor(ID,levels=id_levels), purity=factor(purity,levels=seq(10,100,10) |> as.character())) |> 
   ggplot(aes(x=ID,y=purity,fill=svtype, alpha=supp)) + 
@@ -224,7 +228,7 @@ read_using_variantAnnotation <- function(filename) {
 df_sv_full <- list.files(paste0(workdir, "analysis/benchmark/svs"), pattern = "*\\.merged.vcf",recursive = TRUE, full.names = TRUE) |> map(read_using_variantAnnotation) |> list_rbind() |>  mutate(purity=str_split_i(sample,"_",i=2), purity=ifelse(is.na(purity),"100",purity), cellline=ifelse(startsWith(sample,'COLO829'),"COLO829","HCC1937"), svtype=ifelse(SVTYPE %in% c("INS","DUP"), "INS/DUP",SVTYPE), purity=factor(purity, levels=seq(10,100,10))) 
 ```
 
-A general benchmarking
+**Precision and recall rate of SV calling**
 
 ```{r, fig.height=6.6, fig.width=8}
 temp_df_sv <- df_sv_full |> 
@@ -248,7 +252,7 @@ df_sv_full |> group_by(SUPP_VEC, cellline, tool, purity) |> summarise(n=n()) |> 
 ggsave("figures/sv_purity_benchmarking.png", height = 6.6, width = 8)
 ```
 
-Currently, I think combining SVs detected by multiple tools is a good strategy to call as many novel SV as possibly while keep confidence. Here I compared the the intersect of four tools and pick any SVs that are detected by at least two tools with short-read 'gold standard'.
+I think combining SVs detected by multiple tools is a good strategy to call as many novel SV as possibly while keep confidence. Here I compared the the intersect of four tools and pick any SVs that are detected by at least two tools with short-read 'gold standard'.
 
 ```{r, fig.height=2.5, fig.width=8}
 read_using_variantAnnotation2 <- function(filename) {

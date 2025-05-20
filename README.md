@@ -23,7 +23,6 @@ realistic scenarios.
 - [Sequencing depth combinations](2.simulate_sequencing_depth/README.md)
 - [Variant
   calling](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md##Variant%20calling)
-- [Variant merging and benchmarking]()
 - [QC and purity
   check](1.dna_mixing_celllines/R_analysis/0.purity_and_qc.md): Rmd file
   [purity_and_qc.Rmd](1.dna_mixing_celllines/R_analysis/0.purity_and_qc.Rmd)
@@ -54,15 +53,15 @@ realistic scenarios.
   analysis](1.dna_mixing_celllines/R_analysis/1.snv_mutational_signature.md):
   Rmd file
   [snv_mutational_signature.Rmd](1.dna_mixing_celllines/R_analysis/1.snv_mutational_signature.Rmd)
-- [Genomic regions of false positive
-  calls](1.dna_mixing_celllines/R_analysis/4.genome_regions.md): Rmd
+- [Genomic regions of
+  Variants](1.dna_mixing_celllines/R_analysis/4.genome_regions.md): Rmd
   file
   [genome_regions.Rmd](1.dna_mixing_celllines/R_analysis/4.genome_regions.Rmd)
-- [Germline leakage](3.igv_check/R_analysis/germline_leakage.md): Rmd
-  file
+- [Germline leakage against tumour purity and read
+  depth](3.igv_check/R_analysis/germline_leakage.md): Rmd file
   [germline_leakage.Rmd](3.igv_check/R_analysis/germline_leakage.Rmd)
 - [SV type and length in
-  LR](3.igv_check/R_analysis/lr_unique_sv_length_type.md): Rmd file
+  LRS](3.igv_check/R_analysis/lr_unique_sv_length_type.md): Rmd file
   [lr_unique_length_type.Rmd](3.igv_check/R_analysis/lr_unique_sv_length_type.Rmd)
 
 ### Miscellaneous
