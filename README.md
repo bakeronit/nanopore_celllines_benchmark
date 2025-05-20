@@ -25,16 +25,16 @@ realistic scenarios.
 ### Downstream analysis and plots
 
 - [Construct gold
-  standard](1.dna_mixing_cellines/R_analysis/x.gold_standard.md): Rmd
+  standard](1.dna_mixing_celllines/R_analysis/x.gold_standard.md): Rmd
   file [gold_standard.Rmd](1.dna_mixing_celllines/x.gold_standard.Rmd)
 - [Tumour purity affects SNV and indel
-  calling](1.dna_mixing_cellines/R_analysis/1.benchmark_snv_calling.md):
+  calling](1.dna_mixing_celllines/R_analysis/1.benchmark_snv_calling.md):
   Rmd file
-  [benchmark_snv_calling.Rmd](1.dna_mixing_cellines/R_analysis/1.benchmark_snv_calling.Rmd)
+  [benchmark_snv_calling.Rmd](1.dna_mixing_cellilnes/R_analysis/1.benchmark_snv_calling.Rmd)
 - [Tumour purity affects SV
-  calling](1.dna_mixing_cellines/R_analysis/3.benchmark_sv_calling.md):
+  calling](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md):
   Rmd file
-  [benchmark_sv_calling.Rmd](1.dna_mixing_cellines/R_analysis/3.benchmark_sv_calling.md)
+  [benchmark_sv_calling.Rmd](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md)
 - [Sequencing depth affects SNV and indel calling]()
 - [Sequencing depth affects SV calling]()
 - [Genomic regions of false positive calls]()
@@ -50,5 +50,5 @@ realistic scenarios.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE)
+This project is licensed under the MIT License. See the [LICENSE](L)
 file for details.
