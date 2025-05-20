@@ -18,7 +18,8 @@ realistic scenarios.
 
 ### Raw data processing
 
-- [Base calling and read alignment for cell line mixtures](README.md)
+- [Base calling and read alignment for cell line
+  mixtures](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/workflow/README.md)
 - [Sequencing depth combinations](README.md)
 - [Variant calling](README.md)
 
@@ -30,7 +31,7 @@ realistic scenarios.
 - [Tumour purity affects SNV and indel
   calling](1.dna_mixing_celllines/R_analysis/1.benchmark_snv_calling.md):
   Rmd file
-  [benchmark_snv_calling.Rmd](1.dna_mixing_cellilnes/R_analysis/1.benchmark_snv_calling.Rmd)
+  [benchmark_snv_calling.Rmd](1.dna_mixing_celllines/R_analysis/1.benchmark_snv_calling.Rmd)
 - [Tumour purity affects SV
   calling](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md):
   Rmd file
