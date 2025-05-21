@@ -18,4 +18,12 @@ miscellanous/
 **/*_cache/
 **/config/
 **/profiles/
+**/*.tsv
+**/*.csv
+**/*.bedpe
+datachuck_*.list
+**/nohup.out
+md5sum_table.txt
+upload_to_gigbdb.sh
+find_files.sh
 1.dna_mixing_celllines/0.purity_check/in_silico/

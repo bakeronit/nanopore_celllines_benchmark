@@ -78,7 +78,22 @@ realistic scenarios.
   [circos_plots.Rmd](3.igv_check/R_analysis/0.circos_plots.Rmd)
 - [IGV check](3.igv_check/README.md)
 
+## Reproducibility
+
+Each section above is available as a processed Markdown (`.md`) file.
+Clicking on the links will open web-readable pages that include
+explanatory text, selected commands, plots, and tables. The underlying
+code used to generate these outputs is provided in the corresponding R
+Markdown (`.Rmd`) files. For R environment details, see the [R Session
+Info](rsessioninfo.md) page.
+
+All necessary data required to run these notebooks will be made
+available via OwnCloud. This dataset is dedicated to the public domain
+under the [Creative Commons CC0 1.0 Universal (CC0 1.0) Public Domain
+Dedication](https://creativecommons.org/publicdomain/zero/1.0/),
+allowing unrestricted reuse.
+
 ## License
 
-This project is licensed under the MIT License. See the
+This project is licensed under the BSD 3-Clause License. See the
 [LICENSE](LICENSE) file for details.

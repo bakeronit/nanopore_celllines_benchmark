@@ -1,0 +1,35 @@
+---
+title: "R Session Info"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(data.table)
+library(ggh4x)
+library(patchwork)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(ggridges)
+library(ggplot2)
+library(ggpubfigs)
+library(deconstructSigs)
+library(RColorBrewer)
+library(ggsci)
+library(minfi)
+library(rtracklayer)
+library(IlluminaHumanMethylationEPICmanifest)
+library(gtools)
+library(UpSetR)
+library(VariantAnnotation)
+library(GenomicRanges)
+library(circlize)
+library(introdataviz)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+All analyses were performed using **R 4.3.2** within an Rstudio Docker container ([bakeronit/rstudio_hpc_cancer:0.1.3](https://hub.docker.com/layers/bakeronit/rstudio_hpc_cancer/0.1.3/images/sha256-e288941e0ab0b4a5e2152225169853912342132fbae370241e1d26912b270d5a)). A complete list of used package versions and session details is provided below to ensure reproducibility.
+
+```{r, echo=FALSE}
+sessionInfo()
+```
