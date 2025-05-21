@@ -95,8 +95,8 @@ The number of gold standard SNVs and INDELs
 ## SV gold standard
 
 - Firstly, I convert all VCF into simple format using
-  [simple_event_annotation.py](scripts/simple_event_annotation.py) and
-  filtered for SV that are great than 50bp in size.
+  [simple_event_annotation.py](../scripts/simple_event_annotation.py)
+  and filtered for SV that are great than 50bp in size.
 
 ``` bash
 python simple_event_annotation.py {input.gridss} -t gridss | bcftools view -f 'PASS,.' | bcftools filter -i '( (SVTYPE="DUP" || SVTYPE="DEL" || SVTYPE="INV") && SVLEN>=50 ) || (SVTYPE="INS") || (SVTYPE="TRA")' > {output.gridss}

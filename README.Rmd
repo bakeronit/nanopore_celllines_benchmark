@@ -27,11 +27,11 @@ In this study, we evaluated the performance of long-read sequencing (LRS) for de
 
  - [Construct gold standard](1.dna_mixing_celllines/R_analysis/x.gold_standard.md): Rmd file [gold_standard.Rmd](1.dna_mixing_celllines/R_analysis/x.gold_standard.Rmd)
  - [Tumour purity affects SNV and indel calling](1.dna_mixing_celllines/R_analysis/1.benchmark_snv_calling.md): Rmd file [benchmark_snv_calling.Rmd](1.dna_mixing_celllines/R_analysis/1.benchmark_snv_calling.Rmd)
- - [Tumour purity affects SV calling](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md): Rmd file [benchmark_sv_calling.Rmd](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md)
+ - [Tumour purity affects SV calling](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md): Rmd file [benchmark_sv_calling.Rmd](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.Rmd)
  - [Sequencing depth affects SNV and indel calling](2.simulate_sequencing_depth/R_analysis/1.benchmark_snv_calling.md): Rmd file [benchmark_snv_calling.Rmd](2.simulate_sequencing_depth/R_analysis/1.benchmark_snv_calling.Rmd)
  - [Sequencing depth affects SV calling](2.simulate_sequencing_depth/R_analysis/2.benchmark_sv_calling.md): Rmd file [benchmark_sv_calling.Rmd](2.simulate_sequencing_depth/R_analysis/2.benchmark_sv_calling.Rmd)
  - [Mutational signature analysis](1.dna_mixing_celllines/R_analysis/1.snv_mutational_signature.md): Rmd file [snv_mutational_signature.Rmd](1.dna_mixing_celllines/R_analysis/1.snv_mutational_signature.Rmd)
- - [Genomic regions of Variants](1.dna_mixing_celllines/R_analysis/4.genome_regions.md): Rmd file [genome_regions.Rmd](1.dna_mixing_celllines/R_analysis/4.genome_regions.Rmd)
+ - [Genomic regions of variants](1.dna_mixing_celllines/R_analysis/4.genome_regions.md): Rmd file [genome_regions.Rmd](1.dna_mixing_celllines/R_analysis/4.genome_regions.Rmd)
  - [Germline leakage against tumour purity and read depth](3.igv_check/R_analysis/germline_leakage.md): Rmd file [germline_leakage.Rmd](3.igv_check/R_analysis/germline_leakage.Rmd)
  - [SV type and length in LRS](3.igv_check/R_analysis/lr_unique_sv_length_type.md): Rmd file [lr_unique_length_type.Rmd](3.igv_check/R_analysis/lr_unique_sv_length_type.Rmd)
 
@@ -39,7 +39,7 @@ In this study, we evaluated the performance of long-read sequencing (LRS) for de
 
  - [Sequencing depth check](2.simulate_sequencing_depth/R_analysis/0.depth_check.md): Rmd file [depth_check.Rmd](2.simulate_sequencing_depth/R_analysis/0.depth_check.Rmd)
  - [Methylation analysis](1.dna_mixing_celllines/R_analysis/2.methylation_analysis.md): Rmd file [methylation_analysis.Rmd](1.dna_mixing_celllines/R_analysis/2.methylation_analysis.Rmd)
- - [Cicos plot](3.igv_check/R_analysis/0.circos_plots.md): Rmd file [circos_plots.Rmd](3.igv_check/R_analysis/0.circos_plots.Rmd)
+ - [Circos plot](3.igv_check/R_analysis/0.circos_plots.md): Rmd file [circos_plots.Rmd](3.igv_check/R_analysis/0.circos_plots.Rmd)
  - [IGV check](3.igv_check/README.md)
  
 ## License

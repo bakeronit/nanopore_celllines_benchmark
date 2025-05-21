@@ -40,7 +40,7 @@ realistic scenarios.
 - [Tumour purity affects SV
   calling](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md):
   Rmd file
-  [benchmark_sv_calling.Rmd](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.md)
+  [benchmark_sv_calling.Rmd](1.dna_mixing_celllines/R_analysis/3.benchmark_sv_calling.Rmd)
 - [Sequencing depth affects SNV and indel
   calling](2.simulate_sequencing_depth/R_analysis/1.benchmark_snv_calling.md):
   Rmd file
@@ -54,7 +54,7 @@ realistic scenarios.
   Rmd file
   [snv_mutational_signature.Rmd](1.dna_mixing_celllines/R_analysis/1.snv_mutational_signature.Rmd)
 - [Genomic regions of
-  Variants](1.dna_mixing_celllines/R_analysis/4.genome_regions.md): Rmd
+  variants](1.dna_mixing_celllines/R_analysis/4.genome_regions.md): Rmd
   file
   [genome_regions.Rmd](1.dna_mixing_celllines/R_analysis/4.genome_regions.Rmd)
 - [Germline leakage against tumour purity and read
@@ -74,7 +74,7 @@ realistic scenarios.
   analysis](1.dna_mixing_celllines/R_analysis/2.methylation_analysis.md):
   Rmd file
   [methylation_analysis.Rmd](1.dna_mixing_celllines/R_analysis/2.methylation_analysis.Rmd)
-- [Cicos plot](3.igv_check/R_analysis/0.circos_plots.md): Rmd file
+- [Circos plot](3.igv_check/R_analysis/0.circos_plots.md): Rmd file
   [circos_plots.Rmd](3.igv_check/R_analysis/0.circos_plots.Rmd)
 - [IGV check](3.igv_check/README.md)
 
