@@ -92,8 +92,11 @@ Each section above is available as a processed Markdown (`.md`) file.
 Clicking on the links will open web-readable pages that include
 explanatory text, selected commands, plots, and tables. The underlying
 code used to generate these outputs is provided in the corresponding R
-Markdown (`.Rmd`) files. For R environment details, see the [R Session
-Info](rsessioninfo.md) page.
+Markdown (`.Rmd`) files. Specifically, code and input data used to
+generate each figure in the manuscript are list [here](data_readme.md)
+
+For R environment details, see the [R Session Info](rsessioninfo.md)
+page.
 
 All necessary data required to run these notebooks will be made
 available via OwnCloud. This dataset is dedicated to the public domain
