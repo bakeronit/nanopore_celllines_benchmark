@@ -1,6 +1,14 @@
 
 # Cancer genome standards for long-read sequencing using cancer cell line mixtures
 
+[![CC0](https://licensebuttons.net/p/zero/1.0/88x31.png)](https://creativecommons.org/publicdomain/zero/1.0/)
+![made-with-R](https://img.shields.io/badge/Made%20with-R-1f425f.svg)
+![Snakemake](https://img.shields.io/badge/workflow-snakemake-blue.svg)
+![GitHub last
+commit](https://img.shields.io/github/last-commit/bakeronit/nanopore_celllines_benchmark)
+[![Docker
+Image](https://img.shields.io/badge/docker-image-blue)](https://hub.docker.com/r/bakeronit/rstudio_hpc_cancer)
+
 ## Summary
 
 This repository hosts the analysis scripts and pipeline associated with
@@ -92,6 +100,31 @@ available via OwnCloud. This dataset is dedicated to the public domain
 under the [Creative Commons CC0 1.0 Universal (CC0 1.0) Public Domain
 Dedication](https://creativecommons.org/publicdomain/zero/1.0/),
 allowing unrestricted reuse.
+
+**Note:** The BAM file is not distributed under CC0, as it contains
+human germline genomic information and may be subject to ethical or
+legal restrictions. However, other shared files, including processed
+results and somatic variant calls, are free to reuse without
+restriction.
+
+### Getting started
+
+**1. Clone the repository:**
+
+``` bash
+git clone https://github.com/bakeronit/nanopore_celllines_benchmark.git
+cd nanopore_celllines_benchmark
+```
+
+**2.Download the data from OwnCloud:**
+
+``` bash
+wget -O data.zip link
+unzip data.zip -d data/
+```
+
+> ⚠️ Refer to `data_LICENSE.txt` for licensing terms and data use
+> conditions.
 
 ## License
 

@@ -1,0 +1,27 @@
+DATA LICENSE
+
+This dataset accompanies the publication [placehoder].
+
+Licensing Summary:
+------------------
+Unless otherwise noted, the data files in this repository are dedicated to the public domain under the terms of the Creative Commons CC0 1.0 Universal Public Domain Dedication.
+
+To view a copy of this license, visit:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+You are free to copy, modify, distribute, and use the data, even for commercial purposes, without asking permission.
+
+Exception:
+----------
+The BAM file included in this dataset contains human germline genomic information and is therefore NOT covered by the CC0 license. This file may be subject to data protection laws, ethical approval requirements, or access restrictions. Please ensure appropriate use according to your institutional and legal requirements.
+
+Summary:
+- ✅ Somatic variant data, processed results, and metadata: CC0 1.0 (no restrictions)
+- ❌ BAM file (contains human germline data): restricted use
+
+Please cite the original work if you use this dataset in your research.
+
+Contact:
+--------
+For questions or access inquiries regarding restricted data, please contact:
+[Medical Genomics, jia.zhang@qimrb.edu.au, QIMR Berghofer]
