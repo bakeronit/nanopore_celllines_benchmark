@@ -64,19 +64,20 @@ below to ensure reproducibility.
     ## [31] S4Vectors_0.40.2                          
     ## [32] BiocGenerics_0.48.1                       
     ## [33] patchwork_1.1.3                           
-    ## [34] ggh4x_0.2.8                               
-    ## [35] data.table_1.14.10                        
-    ## [36] lubridate_1.9.3                           
-    ## [37] forcats_1.0.0                             
-    ## [38] stringr_1.5.0                             
-    ## [39] dplyr_1.1.3                               
-    ## [40] purrr_1.0.2                               
-    ## [41] readr_2.1.4                               
-    ## [42] tidyr_1.3.0                               
-    ## [43] tibble_3.2.1                              
-    ## [44] ggplot2_3.4.4                             
-    ## [45] tidyverse_2.0.0                           
-    ## [46] here_1.0.1                                
+    ## [34] facetscales_0.1.0.9000                    
+    ## [35] ggh4x_0.2.8                               
+    ## [36] data.table_1.14.10                        
+    ## [37] lubridate_1.9.3                           
+    ## [38] forcats_1.0.0                             
+    ## [39] stringr_1.5.0                             
+    ## [40] dplyr_1.1.3                               
+    ## [41] purrr_1.0.2                               
+    ## [42] readr_2.1.4                               
+    ## [43] tidyr_1.3.0                               
+    ## [44] tibble_3.2.1                              
+    ## [45] ggplot2_3.4.4                             
+    ## [46] tidyverse_2.0.0                           
+    ## [47] here_1.0.1                                
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] shape_1.4.6               rstudioapi_0.15.0        
