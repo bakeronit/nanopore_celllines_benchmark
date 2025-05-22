@@ -1,6 +1,6 @@
-workdir: "/working/lab_nicw/jiaZ/general/goldstandard/structural_variation"
+workdir: "gs"
 
-configfile: "/working/lab_nicw/jiaZ/general/goldstandard/structural_variation/short_read_sv_snakemake/config/config.yaml"
+configfile: "/path/to/config.yaml"
 
 wildcard_constraints:
     cell = "|".join(['colo829','hcc1937']),

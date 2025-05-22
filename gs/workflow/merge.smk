@@ -1,4 +1,4 @@
-workdir: "."
+workdir: "gs"
 configfile: "/path/to/config.yaml"
 
 

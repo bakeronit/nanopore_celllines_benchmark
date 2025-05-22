@@ -13,6 +13,8 @@ miscellanous/
 1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/
 **/.snakemake/
 **/*.vcf
+**/*.gz
+**/.gz.tbi
 **/*.vcf.gz
 **/*.vcf.gz.tbi
 **/*_cache/
@@ -29,3 +31,6 @@ find_files.sh
 1.dna_mixing_celllines/0.purity_check/in_silico/
 1.dna_mixing_celllines/*.txt
 a
+gs/vcfs/
+gs/structural_variation/
+

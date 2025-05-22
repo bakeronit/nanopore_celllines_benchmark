@@ -449,10 +449,10 @@
   
 ```bash
 # figure 5a
-goldstandard/vcfs/colo829/merged_normed_isec_snv.goldstandard.vcf.gz.tbi
-goldstandard/vcfs/colo829/merged_normed_isec_snv.goldstandard.vcf.gz
-goldstandard/vcfs/hcc1937/merged_normed_isec_snv.goldstandard.vcf.gz.tbi
-goldstandard/vcfs/hcc1937/merged_normed_isec_snv.goldstandard.vcf.gz
+gs/vcfs/colo829/merged_normed_isec_snv.hom100.goldstandard.vcf.gz.tbi
+gs/vcfs/colo829/merged_normed_isec_snv.hom100.goldstandard.vcf.gz
+gs/vcfs/hcc1937/merged_normed_isec_snv.hom100.goldstandard.vcf.gz.tbi
+gs/vcfs/hcc1937/merged_normed_isec_snv.hom100.goldstandard.vcf.gz
 1.dna_mixing_celllines/work/analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/COLO829_30.COLO829_BL_passed/fp.vcf
 1.dna_mixing_celllines/work/analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_50.HCC1937_BL_passed/fp.vcf
 1.dna_mixing_celllines/work/analysis/benchmark/snvs/somatic/R10/sup/deepsomatic/HCC1937_60.HCC1937_BL_passed/fp.vcf
@@ -592,16 +592,16 @@ goldstandard/vcfs/hcc1937/merged_normed_isec_snv.goldstandard.vcf.gz
   - Merged VCF files indicate the shared SV called from different tools.
 
 ```bash
-goldstandard/vcfs/colo829/isec_hom100_snv_dir/sites.txt.gz
-goldstandard/vcfs/colo829/isec_hom100_snv_dir/sites.txt.gz.tbi
-goldstandard/vcfs/colo829/isec_indel_dir/sites.txt.gz
-goldstandard/vcfs/colo829/isec_indel_dir/sites.txt.gz.tbi
-goldstandard/vcfs/hcc1937/isec_hom100_snv_dir/sites.txt.gz
-goldstandard/vcfs/hcc1937/isec_hom100_snv_dir/sites.txt.gz.tbi
-goldstandard/vcfs/hcc1937/isec_indel_dir/sites.txt.gz
-goldstandard/vcfs/hcc1937/isec_indel_dir/sites.txt.gz.tbi
-goldstandard/structural_variation/analysis/svs/jasmine_merge/colo829/colo829.final_merged.vcf
-goldstandard/structural_variation/analysis/svs/jasmine_merge/hcc1937/hcc1937.final_merged.vcf
+gs/vcfs/colo829/isec_hom100_snv_dir/sites.txt.gz
+gs/vcfs/colo829/isec_hom100_snv_dir/sites.txt.gz.tbi
+gs/vcfs/colo829/isec_indel_dir/sites.txt.gz
+gs/vcfs/colo829/isec_indel_dir/sites.txt.gz.tbi
+gs/vcfs/hcc1937/isec_hom100_snv_dir/sites.txt.gz
+gs/vcfs/hcc1937/isec_hom100_snv_dir/sites.txt.gz.tbi
+gs/vcfs/hcc1937/isec_indel_dir/sites.txt.gz
+gs/vcfs/hcc1937/isec_indel_dir/sites.txt.gz.tbi
+gs/structural_variation/analysis/svs/jasmine_merge/colo829/colo829.final_merged.vcf
+gs/structural_variation/analysis/svs/jasmine_merge/hcc1937/hcc1937.final_merged.vcf
 ```
 
 **Supplementary figure 3**
