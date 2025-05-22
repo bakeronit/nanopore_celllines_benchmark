@@ -4,9 +4,12 @@ Gold standard variants from short-read sequencing
 ## SNV gold standard construction
 
 We had three biological replication library for cell line COLO829 and
-HCC1937, each sequenced with short-read illumina sequencing with high??
-depth, and processed with our pipeline. I get the those SNVs that are
-shared by at least two libraries.
+HCC1937 available, each sequenced with short-read illumina sequencing
+with \>60x depth, and previously processed using gatk best practice
+pipeline, detailed bash scripts list
+[here](gs/commands_in_sr_pipeline.sh).
+
+I get the those SNVs that are shared by at least two libraries.
 
 For SNV, I need to atomise MNV to assure the all can be merged.
 
@@ -94,7 +97,11 @@ The number of gold standard SNVs and INDELs
 
 ## SV gold standard
 
-- Firstly, I convert all VCF into simple format using
+- Firstly, I call SV using [lumpy](https://github.com/arq5x/lumpy-sv),
+  [gridss](https://github.com/PapenfussLab/gridss), and
+  [delly](https://github.com/dellytools/delly) using the
+  [workflow](../gs/Snakefile).
+- Then, I convert all VCF into simple format using
   [simple_event_annotation.py](../scripts/simple_event_annotation.py)
   and filtered for SV that are great than 50bp in size.
 
@@ -104,7 +111,7 @@ python simple_event_annotation.py {input.delly} -t delly | bcftools view -f 'PAS
 python simple_event_annotation.py {input.lumpy} -t lumpy | bcftools view -f 'PASS,.' | bcftools filter -i '( (SVTYPE="DUP" || SVTYPE="DEL" || SVTYPE="INV" || SVTYPE="INS") && SVLEN>=50 ) || (SVTYPE="TRA")' > {output.lumpy}
 ```
 
-- Then I merged results from three tools using
+- Finally, I merged results from three tools using
   [Jasmine](https://github.com/mkirsche/Jasmine), and get events that
   are presenting in at least two tools using `bcftools`.
 
