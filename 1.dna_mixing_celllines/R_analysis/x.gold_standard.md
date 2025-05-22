@@ -7,7 +7,7 @@ We had three biological replication library for cell line COLO829 and
 HCC1937 available, each sequenced with short-read illumina sequencing
 with \>60x depth, and previously processed using gatk best practice
 pipeline, detailed bash scripts list
-[here](gs/commands_in_sr_pipeline.sh).
+[here](../../gs/commands_in_sr_pipeline.sh).
 
 I get the those SNVs that are shared by at least two libraries.
 
@@ -100,7 +100,7 @@ The number of gold standard SNVs and INDELs
 - Firstly, I call SV using [lumpy](https://github.com/arq5x/lumpy-sv),
   [gridss](https://github.com/PapenfussLab/gridss), and
   [delly](https://github.com/dellytools/delly) using the
-  [workflow](../gs/Snakefile).
+  [workflow](../../gs/workflow).
 - Then, I convert all VCF into simple format using
   [simple_event_annotation.py](../scripts/simple_event_annotation.py)
   and filtered for SV that are great than 50bp in size.
