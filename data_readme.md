@@ -137,7 +137,7 @@
 1.dna_mixing_celllines/work/analysis/benchmark/snvs/somatic/R10/sup/clairS/COLO829_20.COLO829_BL_passed/fp.vcf
 1.dna_mixing_celllines/work/analysis/benchmark/snvs/somatic/R10/sup/clairS/HCC1937_30.HCC1937_BL_passed/fp.vcf
 
-# figure 
+# figure 2c
 1.dna_mixing_celllines/work/analysis/benchmark/indels/somatic/R10/sup/clairS/COLO829_10.COLO829_BL/summary.txt
 1.dna_mixing_celllines/work/analysis/benchmark/indels/somatic/R10/sup/clairS/COLO829_20.COLO829_BL/summary.txt
 1.dna_mixing_celllines/work/analysis/benchmark/indels/somatic/R10/sup/clairS/COLO829_30.COLO829_BL/summary.txt
