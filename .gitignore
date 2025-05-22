@@ -27,3 +27,5 @@ md5sum_table.txt
 upload_to_gigbdb.sh
 find_files.sh
 1.dna_mixing_celllines/0.purity_check/in_silico/
+1.dna_mixing_celllines/*.txt
+a
