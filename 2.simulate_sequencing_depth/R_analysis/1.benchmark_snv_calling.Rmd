@@ -14,10 +14,10 @@ names(mypal2) <- c("FP","FN","TP")
 knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
 ```
 
-### The choice of sequencing Variant calling 
 
 ```{r}
-somatic_path <- paste0(workdir, "analysis/benchmark/snvs/somatic")
+#somatic_path <- paste0(workdir, "analysis/benchmark/snvs/somatic")
+somatic_path <- paste0(revision_workdir, "analysis/benchmark/depth/snvs/")
 df <- list.files(somatic_path, pattern = "summary.txt",recursive = TRUE, full.names = TRUE) |> 
   set_names() |> map(\(x) read.table(x, header=TRUE)) |> list_rbind(names_to = "prefix") |> 
   filter(Filter=="PASS") |> 
@@ -75,8 +75,9 @@ p5 <- df |> filter(celltype=="HCC1937", tool=="deepsomatic")|> dplyr::select(tum
 
 p2|p3|p1|p4|p5
 ```
-plot F1 score instead of recall and precision
+
 ```{r eval=FALSE}
+#plot F1 score instead of recall and precision
 pa <- df |> filter(celltype=="COLO829")|> select(tumor,type,purity,tool,F1.score) |> 
   ggplot(aes(x=type,y=F1.score,color=purity,group=tumor)) + geom_line(size=1) + geom_point() + 
   scale_color_manual(values = brewer.pal(name = "PuOr",n=10)) + labs(x="",y="") + coord_flip() + facet_wrap(~tool) + 
@@ -96,8 +97,9 @@ pa+p1+pb + plot_layout(nrow = 1,widths = c(0.35,0.3,0.35))
 ggsave("figures/mixing_and_depths.png",width = 10,height = 5)
 ```
 
-## try heatmap
+
 ```{r eval=FALSE}
+## try heatmap
 p_heatmap_colo829_clairS <- df |> filter(celltype=="COLO829",tool=="clairS")|> select(tumor,tool,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |> 
   mutate(hjust=ifelse(name=="Precision",0.25,0.8), vjust=ifelse(name=="Precision",3,-1.5)) |> 
   ggplot(aes(x=purity, y=type,color=value,shape=name)) +
@@ -142,9 +144,9 @@ p_heatmap_hcc1937_dpsomatic <- df |> filter(celltype=="HCC1937",tool=="deepsomat
 wrap_plots(p_heatmap_colo829_clairS,p_heatmap_colo829_dpsomatic,p1,p_heatmap_hcc1937_clairS, p_heatmap_hcc1937_dpsomatic) + plot_layout(nrow=1)
 ```
 
-## keep improving the figure
 
 ```{r eval=FALSE}
+## keep improving the figure
 my_df <- df |> mutate(facet=paste(celltype,tool,sep = "-"))|> select(tumor,tool, celltype,type,purity,Precision,Recall) |> pivot_longer(c(Precision,Recall)) |> 
   mutate(hjust=ifelse(name=="Precision",0.25,0.8), vjust=ifelse(name=="Precision",3,-1.5)) 
 
@@ -166,7 +168,7 @@ ggplot(my_df, aes(x=type,y=purity)) +
 ```
 
 
-## Begin again
+### The performance of SNV calling under different sequencing depth combinations
 
 Begin again, start from something really simple. I need to know the # of SNV detected by different sequencing strategies. so under the sample tumour sequencing depth, how many SNVs called in different normal sequencing depth.
 
@@ -235,7 +237,8 @@ ggsave("figures/figure4a.pdf", width = 7, height = 3.2, dpi = "retina")
 ## indels
 
 ```{r}
-somatic_indels_path <- paste0(workdir, "analysis/benchmark/indels/somatic")
+#somatic_indels_path <- paste0(workdir, "analysis/benchmark/indels/somatic")
+somatic_indels_path <- paste0(revision_workdir, "analysis/benchmark/depth/indels/")
 
 df_indel <- list.files(somatic_indels_path, pattern = "summary.txt",recursive = TRUE, full.names = TRUE) |> 
   set_names() |> map(\(x) read.table(x, header=TRUE)) |> list_rbind(names_to = "prefix") |> 
@@ -366,7 +369,8 @@ read_bc_vcf2 <- function(filename) {
   
   read_tsv(filename, col_names = F) |> separate_wider_delim(cols = "X10",delim = ":",names = info_cols) |>
     add_column(prefix=prefix, tool=tool) |> 
-    dplyr::select(X1, X2, X6, GT, DP, af_col,prefix, tool) |> dplyr::rename("chr"=X1,"pos"=X2, "qual" = X6,"vaf"=af_col) 
+    dplyr::select(X1, X2, X6, GT, DP, af_col,prefix, tool) |> dplyr::rename("chr"=X1,"pos"=X2, "qual" = X6,"vaf"=af_col) |> 
+    filter(chr %in% valid_chr)
 }
 
 
@@ -422,6 +426,7 @@ df_tp_fp |>
 ggsave("figures/snv_depth_benchmarking_qual.png", height = 6.6, width = 8)
 ```
 **only plot for samples with 100% purity**
+
 ```{r, fig.width=6.6, fig.height=6}
 name_labeller <- c("VAF","DP","QUAL")
 names(name_labeller) <- c("vaf","DP","qual")
@@ -438,7 +443,7 @@ ggsave("figures/supp-figure8.png", width = 6.6, height = 6, dpi = "retina")
 ggsave("figures/supp-figure8.pdf", width = 6.6, height = 6, dpi = "retina")
 ```
 
-not very interesting. let's have a look of the indels
+### The TP and FP of indel calling
 
 ```{r, cache=TRUE, warning=FALSE}
 df_indel_tp <- list.files(paste0(workdir, "analysis/benchmark/indels/somatic"), pattern = "^tp.vcf", recursive = TRUE,full.names = T)|>  map(read_bc_vcf2)  |> list_rbind()|> add_column(type="TP")
