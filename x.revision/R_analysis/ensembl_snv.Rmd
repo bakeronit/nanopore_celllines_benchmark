@@ -1,0 +1,58 @@
+---
+title: "Overlapped SNV calls"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+revision_workdir <- "../"
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center', fig.retina=2)
+```
+
+This notebook contains analysis performed to address Reviewer #1's comment:
+
+>Weakness
+1. The lack of analysis for overlapping true positives or false positives across methods was a missed opportunity to understand the potential impact of ensemble methods. Albeit, an analysis of overlapping calls is slightly out of scope of this work. Therefore, I do not see overlap analysis as a necessary revision.
+
+All scripts we ran to generate the summary of overlapped SNVs from ClairS and DeepSomatic are included in [intersect_snvs.smk](../intersect_snvs.smk).
+
+
+```{r}
+df <- list.files(paste0(revision_workdir, "analysis/snvs/intersections"), 
+           pattern = "summary.txt", 
+           recursive = TRUE, 
+           full.names = TRUE) |> 
+  map(read_tsv) |> list_rbind() |> 
+  mutate(cellline=str_split_i(sample, "_", 1),
+             purity=str_split_i(sample,"_",2),
+             purity=ifelse(is.na(purity), "100", purity),
+             purity=fct_relevel(purity, seq(10,100,10) |> as.character() |> rev()))
+```
+
+We found that large proportion of both methods are overlapped, especally for DeepSomatic, there were not many DeepSomatic unique SNVs.
+
+```{r snv_overlap, fig.height=4, fig.width=6.8}
+df |> select(cellline, purity, intersection, uniq_clairs, uniq_dpsomatic) |> 
+  pivot_longer(-c(cellline,purity)) |>
+  mutate(name=fct_relevel(name, "uniq_dpsomatic", "uniq_clairs","intersection")) |> 
+  ggplot(aes(x=purity, y=value, fill=name)) +
+  geom_col() +
+  facet_wrap(~cellline, scale="free_y") +
+  theme_bw(base_size = 12) +
+  scale_fill_brewer(palette = "Set1", labels= c("DeepSomatic Unique", "ClairS Unique","Intersection")) +
+  labs(x="Tumour purity", y="Count", fill="") +
+  theme(strip.background =element_rect(fill="white"),
+        legend.position = "bottom")
+```
+
+As expected, the recall is slightly lower compared with each single method but higher precision. In addition, the union calls have higher recalls. In the future, using union calls and integrated with filters which take context (allele frequency, read depth, quality scores and even genomic regions) might be a good strategy be produce high confidence variant calling.
+
+```{r}
+df |> select(cellline, purity, intersection_precision, intersection_recall, union_recall) |> 
+  arrange(cellline, purity, desc=TRUE) |> 
+  knitr::kable(col.names = c("Cell line", "Tumour Purity", "Precison of Intersection", "Recall of Intersection", "Recall of Union" ))
+
+write_tsv(df, file = "results/table-S1.tsv")
+```
+
