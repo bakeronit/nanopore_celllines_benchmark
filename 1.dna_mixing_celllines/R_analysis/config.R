@@ -11,4 +11,6 @@ ggsci_pals <- c("#E64B35FF", "#4DBBD5FF", "#00A087FF")
 colorblind_pals <- friendly_pals$contrast_three
 
 public_tool_names = c("clairS" = "ClairS", "deepsomatic" = "DeepSomatic", "delly"="Delly","nanomonsv" = "nanomonsv", "savana" = "SAVANA", "severus"= "Severus")
-valid_chr <- paste0("chr",c(1:22,"X","Y"))
+valid_chr <- paste0("chr",c(1:22,"X","Y","M"))
+
+revision_workdir <- "/working/lab_nicw/jiaZ/bioprojects/nanopore_celllines_benchmark/x.revision/"

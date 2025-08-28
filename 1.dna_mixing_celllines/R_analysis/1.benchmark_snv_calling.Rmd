@@ -86,8 +86,9 @@ singularity exec {ClairS_sif} python /opt/bin/clairs.py compare_vcf \
 ```
 
 ```{r}
-somatic_benchmark_path <- paste0(workdir, "analysis/benchmark/snvs/somatic/R10/sup")
-summary_files <- list.files(path = somatic_benchmark_path,pattern = "summary.txt",recursive = TRUE, full.names = TRUE) |> discard(\(x) grepl("noXY",x))
+#somatic_benchmark_path <- paste0(workdir, "analysis/benchmark/snvs/somatic/R10/sup")
+somatic_benchmark_path <- paste0(revision_workdir, "analysis/benchmark/purity/snvs")
+summary_files <- list.files(path = somatic_benchmark_path, pattern = "summary.txt",recursive = TRUE, full.names = TRUE) |> discard(\(x) grepl("noXY",x))
 
 df <- summary_files |> 
   set_names(\(x) str_remove_all(x,pattern = c(paste0(somatic_benchmark_path,"/"),"/summary.txt") |> paste(collapse = "|"))) |> 
@@ -103,7 +104,7 @@ df <- summary_files |>
 df |> dplyr::select(tool,celltype,purity,Precision,Recall, F1.score, TP, FP, FN) |>  knitr::kable()
 ```
 
-```{r, fig.height=3.8, fig.width=6.2}
+```{r, warning=FALSE, fig.height=3.8, fig.width=6.2}
 df |> 
   mutate(tool=ifelse(tool=="clairS","ClairS","DeepSomatic")) |> 
   ggplot(aes(x=Recall,y=Precision,group=tool,fill=purity,shape=tool)) +
@@ -120,16 +121,18 @@ df |>
 
 ggsave("figures/snv_calling_benchmark_precision_recall_curve_plot.png", width = 6.2, height = 3.8) #in fact, this curve is recall-precision curve instead of ROC curve which is plotted with recall and FPR
 ```
+The ROC curves show performance of snv calling under difference qual scores.
 
-```{r}
-
-roc_df <- list.files(paste0(workdir, "analysis/benchmark/snvs/somatic/R10/sup"), pattern = "^roc$", recursive = TRUE, full.names = TRUE) |> 
+```{r, warning=FALSE}
+roc_df <- 
+  #list.files(paste0(workdir, "analysis/benchmark/snvs/somatic/R10/sup"), pattern = "^roc$", recursive = TRUE, full.names = TRUE) |> 
+  list.files(paste0(revision_workdir, "analysis/benchmark/purity/snvs"), pattern = "^roc$", recursive = TRUE, full.names = TRUE) |> 
   discard(\(x) grepl("noXY",x)) |> 
-  set_names(\(x) str_remove(x, workdir) ) |> 
+  set_names(\(x) str_remove(x, revision_workdir) ) |> 
   map(\(f) read_tsv(f, col_names = c("qual","precision","recall","f1")) ) |> list_rbind(names_to="prefix") |> 
   mutate(tool=ifelse(grepl("clairS",prefix),"ClairS","DeepSomatic"), 
-         sample=str_split_i(prefix,"/",i=8) |> str_split_i("\\.",i=1), 
-         normal=str_split_i(prefix,"/",i=8) |> str_split_i("\\.",i=2), 
+         sample=str_split_i(prefix,"/",i=6) |> str_split_i("\\.",i=1), 
+         normal=str_split_i(prefix,"/",i=6) |> str_split_i("\\.",i=2), 
          celltype=ifelse(startsWith(sample,"COLO829"),"COLO829","HCC1937"), celltype=ifelse(grepl("noXY",normal), paste0(celltype,"_noXY"), celltype),
          purity=str_split_i(sample,"_",i=2), purity=ifelse(is.na(purity),"100",purity), purity=factor(purity, levels=seq(10,100,10) |> as.character()),
          fdr=1-precision, fpr=(1-precision)*recall/precision)
@@ -143,19 +146,25 @@ roc_df |>
   labs(x="Estimated false positive rate", y="Recall", linetype="", color="Purity") +
   theme(legend.position = "bottom", panel.background = element_rect(fill = "lightgrey", color="black"))
 
-
 ggsave("figures/snv_calling_benchmark_ROCcurve_plot.png", width = 6.2, height = 3.8)
 
+```
+
+**Figure 2: A ROC-like plot for SNV performance under varying tumour purity levels in COLO829 and HCC1937 using ClairS and DeepSomatic**
+
+And we are wondering if the best QUAL threshold changed for samples with different tumour purities. Apparently, ClairS need a higher QUAL threshold than DeepSomatic.
+
+```{r, warning=FALSE}
 roc_df |> group_by(sample, celltype,tool) |> mutate(max_f1=max(f1)) |> filter(f1==max_f1) |> slice_max(qual) |> 
   mutate(purity=factor(purity,levels=seq(100,10,-10))) |> 
   ggplot(aes(x=purity,y=qual,color=tool, group=tool)) + geom_point() + geom_line() +
   facet_wrap(~celltype) + theme_minimal() + 
   labs(x="Purity", y="Optimum QUAL threshold", color="") + 
   theme(legend.position = "bottom")
-  
 ```
 
-**Figure 2: A ROC-like plot for SNV performance under varying tumour purity levels in COLO829 and HCC1937 using ClairS and DeepSomatic**
+**Figure 3: The QUAL thresholds which maximise the F1 score for samples with different tumour purity**
+
 
 ```{r, fig.height=4, fig.width=7.2}
 p_snv <- df |> dplyr::select(tool,celltype,purity,Precision,Recall, F1.score, TP, FP, FN) |> filter(celltype!="HCC1937_noXY") |> 
@@ -174,9 +183,9 @@ p_snv <- p_snv + theme(legend.position = "none")
 ggsave("figures/snv_purity_benchmarking.png",p_snv, height = 3, width = 7.2)
 ```
 
-**Figure 3: SNV calling recall and precision under varying tumour purity levels in COLO829 and HCC1937 using ClairS and DeepSomatic**
+**Figure 4: SNV calling recall and precision under varying tumour purity levels in COLO829 and HCC1937 using ClairS and DeepSomatic**
 
-```{r,fig.height=3.2, fig.width=6.2, eval=FALSE}
+```{r,fig.height=3.2, fig.width=6.2, eval=FALSE, warning=FALSE}
 df |> dplyr::select(tool,celltype,purity,Precision,Recall, F1.score, TP, FP, FN) |> filter(celltype!="HCC1937_noXY") |> 
   mutate(FN=-FN, recall_pos= FN, precision_pos = TP+FP) |> pivot_longer(c(TP,FN,FP)) |>
   ggplot(aes(x=purity,y=value,fill=name)) + geom_bar(stat = "identity", position = "stack") + 
@@ -193,8 +202,6 @@ df |> dplyr::select(tool,celltype,purity,Precision,Recall, F1.score, TP, FP, FN)
 
 ggsave("figures/snv_purity_benchmarking_v.png", height = 3.2, width = 7.2)
 ```
-
-
 
 **What is the difference in distribution of VAF, read depth and QUAL scores between TP and FP?**
 
@@ -214,6 +221,7 @@ read_bc_vcf <- function(filename) {
   read_tsv(filename, col_names = F) |> separate_wider_delim(cols = "X10",delim = ":",names = info_cols) |>
     add_column(sample=sample,tool=tool) |> 
     dplyr::select(X1, X2, X4, X5, X6, GT, DP, af_col, sample, tool) |> dplyr::rename("chr"=X1,"pos"=X2, "ref"=X4, "alt"=X5,"qual" = X6,"vaf"=af_col) |> 
+    filter(chr %in% valid_chr) |> 
     mutate(purity=str_split_i(sample,"_",i=2), purity=ifelse(is.na(purity),"100",purity),
            purity=factor(purity,levels=seq(10,100,10) |> as.character()))
 }
@@ -272,7 +280,7 @@ p1/p2/p3/p_legend + plot_layout(heights = c(0.29,0.29,0.32,0.1))
 ```
 
 
-**Figure 4: VAF, DP and QUAL score distribution of SNV true positive and false positive calls in COLO829 and HCC1937**
+**Figure 5: VAF, DP and QUAL score distribution of SNV true positive and false positive calls in COLO829 and HCC1937**
 
 
 ```{r, fig.height=4.6, fig.width=7.2}
@@ -285,7 +293,7 @@ rbind(df_tp, df_fp) |> mutate(vaf=as.numeric(vaf),celltype=ifelse(startsWith(sam
 ggsave("figures/snv_benchmarking_vaf_ridgeline.png", height = 4.6, width = 7.2)
 ```
 
-**Figure 5: VAF distribution in ridgeline plot of SNV true positive and false positive calls in COLO829 and HCC1937**
+**Figure 6: VAF distribution in ridgeline plot of SNV true positive and false positive calls in COLO829 and HCC1937**
 
 
 ### Indel calling performance in samples with different tumour purity levels
@@ -294,7 +302,8 @@ We also used `compare_vcf` module of `clairS` to benchmark indel calling with ou
 
 
 ```{r, message=FALSE, warning=FALSE}
-somatic_benchmark_indel_path <- paste0(workdir, "/analysis/benchmark/indels/somatic/R10/sup")
+#somatic_benchmark_indel_path <- paste0(workdir, "/analysis/benchmark/indels/somatic/R10/sup")
+somatic_benchmark_indel_path <- paste0(revision_workdir, "analysis/benchmark/purity/indels")
 
 df_indel <- list.files(path = somatic_benchmark_indel_path,pattern = "summary.txt",recursive = TRUE, full.names = TRUE) |> 
   set_names(\(x) str_remove_all(x,pattern = c(paste0(somatic_benchmark_indel_path,"/"),"/summary.txt") |> paste(collapse = "|"))) |> 
@@ -340,7 +349,7 @@ ggsave("figures/indel_purity_benchmarking.png", p_indel, height = 3, width = 7.2
 ```
 
 
-**Figure 6: Indel calling recall and precision under varying tumour purity levels in COLO829 and HCC1937 using ClairS and DeepSomatic**
+**Figure 7: Indel calling recall and precision under varying tumour purity levels in COLO829 and HCC1937 using ClairS and DeepSomatic**
 
 **We also check the VAF, DP and QUAL score distribution between true positive and false positive calls**
 
@@ -389,6 +398,6 @@ pc <- pc+ theme(legend.position = "none")
 pa/pb/pc/p_legend + plot_layout(heights = c(0.29,0.29,0.32,0.1))
 ```
 
-**Figure 7: VAF, DP and QUAL score distribution of indel true positive and false positive calls in COLO829 and HCC1937**
+**Figure 8: VAF, DP and QUAL score distribution of indel true positive and false positive calls in COLO829 and HCC1937**
 
 
