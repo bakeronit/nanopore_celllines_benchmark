@@ -1,0 +1,37 @@
+from pathlib import Path
+import pandas as pd
+
+purity_workdir = Path("/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work")
+depth_workdir = Path("/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/2.simulate_sequencing_depth")
+
+config_dir = Path("/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config") 
+data_list = [pd.read_csv(f) for f in config_dir.glob("sample*.csv")]
+samples_df = pd.concat(data_list, ignore_index=True)
+
+wildcard_constraints:
+    sample = "|".join(samples_df['sample_id'].unique()),
+    sample_t = "|".join(samples_df[samples_df['type'] == 'tumour']['sample_id'].unique()),
+    sample_n = "|".join(samples_df[samples_df['type'] == 'normal']['sample_id'].unique()),
+    depth = "|".join(["60x","45x","30x","15x"]),
+    variant_type = "|".join(["snvs","indels"])
+
+def generate_paired_samples(df):
+    """generate tumour-normal pairs for each donor"""
+    donor_flowcell_df = df[['donor_id','flowcell_version']].drop_duplicates() # for each donor, and potentially each flowcell version
+    pairs = []
+    for index, row in donor_flowcell_df.iterrows():
+        donor_id = row['donor_id']
+        flowcell = row['flowcell_version']
+        tumour_sample = df[(df['donor_id'] == donor_id) & (df['flowcell_version'] == flowcell) & (df['type'] == 'tumour')]['sample_id'].unique().tolist()
+        normal_sample = df[(df['donor_id'] == donor_id) & (df['flowcell_version'] == flowcell) & (df['type'] == 'normal')]['sample_id'].unique().tolist()
+        if len(tumour_sample) > 1 and len(normal_sample) > 1:
+            raise ValueError('Multiple tumour vs multiple normal samples for one donor, could not determine the paired samples')
+            sys.exit()
+        pairs += [{'donor': donor_id, 'tumour': t, 'normal': n, 'flowcell_version': flowcell} for t in tumour_sample for n in normal_sample]
+    return pairs
+
+def get_gs_sites(wildcards):
+    cellline = wildcards.sample_t.split("_")[0].lower()
+    return f"/mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/{cellline}/isec_hom100_snv_dir/sites.txt.gz"
+
+pairs = generate_paired_samples(samples_df)
