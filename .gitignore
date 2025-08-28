@@ -33,4 +33,6 @@ find_files.sh
 a
 gs/vcfs/
 gs/structural_variation/
-
+**/logs/
+**/benchmarks/
+**/analysis/
