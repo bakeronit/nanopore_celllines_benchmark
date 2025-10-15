@@ -24,4 +24,5 @@ Please cite the original work if you use this dataset in your research.
 Contact:
 --------
 For questions or access inquiries regarding restricted data, please contact:
-[Medical Genomics, jia.zhang@qimrb.edu.au, QIMR Berghofer]
+[The Medical Genomics Team, nic.waddell@qimrb.edu.au, QIMR Berghofer]
+[The Medical Genomics Team, jia.zhang@qimrb.edu.au, QIMR Berghofer]

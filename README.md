@@ -85,6 +85,10 @@ realistic scenarios.
 - [Circos plot](3.igv_check/R_analysis/0.circos_plots.md): Rmd file
   [circos_plots.Rmd](3.igv_check/R_analysis/0.circos_plots.Rmd)
 - [IGV check](3.igv_check/README.md)
+- [SNV calling Intersection](x.revision/R_analysis/ensembl_snv.md): Rmd
+  file [ensembl_snv.Rmd](x.revision/R_analysis/ensembl_snv.Rmd)
+- [Align with CHM13-T2T assembly](x.revision/R_analysis/t2t_snv.Rmd):
+  Rmd file [t2t_snv.Rmd](x.revision/R_analysis/t2t_snv.Rmd)
 
 ## Reproducibility
 

@@ -30,10 +30,10 @@ upload_to_gigbdb.sh
 find_files.sh
 1.dna_mixing_celllines/0.purity_check/in_silico/
 1.dna_mixing_celllines/*.txt
-a
 gs/vcfs/
 gs/structural_variation/
 **/logs/
 **/benchmarks/
 **/analysis/
 **/data/
+x.revision/run_qalter.sh
