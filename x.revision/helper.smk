@@ -35,3 +35,42 @@ def get_gs_sites(wildcards):
     return f"/mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/{cellline}/isec_hom100_snv_dir/sites.txt.gz"
 
 pairs = generate_paired_samples(samples_df)
+
+def estimated_mem(chrom):
+    chrom_sizes = {
+    'chr1': 248387328,
+    'chr2': 242696752,
+    'chr3': 201105948,
+    'chr4': 193574945,
+    'chr5': 182045439,
+    'chr6': 172126628,
+    'chr7': 160567428,
+    'chr8': 146259331,
+    'chr9': 150617247,
+    'chr10': 134758134,
+    'chr11': 135127769,
+    'chr12': 133324548,
+    'chr13': 113566686,
+    'chr14': 101161492,
+    'chr15': 99753195,
+    'chr16': 96330374,
+    'chr17': 84276897,
+    'chr18': 80542538,
+    'chr19': 61707364,
+    'chr20': 66210255,
+    'chr21': 45090682,
+    'chr22': 51324926,
+    'chrM': 16569,
+    'chrX': 154259566,
+    'chrY': 62460029
+}
+    min_mem = 30
+    base_chr = "chr22"
+    base_mem = 70
+    base_size = chrom_sizes[base_chr]
+    if not chrom_sizes.get(chrom):
+        return min_mem
+    mem = int(chrom_sizes[chrom] * base_mem * 1.2 / base_size) # allow 20% buffer
+    if mem > min_mem:
+        return mem
+    return min_mem

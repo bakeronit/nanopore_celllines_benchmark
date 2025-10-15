@@ -102,6 +102,7 @@ df <- summary_files |>
   mutate(celltype=ifelse(grepl("noXY", normal),paste0(celltype,"_noXY"),celltype))
 
 df |> dplyr::select(tool,celltype,purity,Precision,Recall, F1.score, TP, FP, FN) |>  knitr::kable()
+df |> group_by(tool, celltype, Type) |> summarise(ave_precision=mean(Precision)*100, ave_recall=mean(Recall)*100) |>  knitr::kable()
 ```
 
 ```{r, warning=FALSE, fig.height=3.8, fig.width=6.2}
@@ -315,6 +316,24 @@ df_indel <- list.files(path = somatic_benchmark_indel_path,pattern = "summary.tx
          purity=factor(purity, levels=seq(10,100,10)))
 
 df_indel |> dplyr::select(tool,celltype,purity,Type,Precision,Recall, F1.score, TP, FP, FN) |>  knitr::kable()
+df_indel |> filter(Type=="INDEL") |> group_by(tool, celltype) |> summarise(ave_precision=mean(Precision)*100, ave_recall=mean(Recall)*100) |> knitr::kable()
+```
+
+```{r,  warning=FALSE, fig.height=3.8, fig.width=6.2}
+df_indel |> 
+  mutate(tool=ifelse(tool=="clairS","ClairS","DeepSomatic")) |> filter(Type=="INDEL") |> 
+  ggplot(aes(x=Recall,y=Precision,group=tool,fill=purity,shape=tool)) +
+  geom_path(color="darkgrey", linewidth=.4) +
+  geom_point(size=2.5, color="black", alpha=.8) +
+  scale_shape_manual(values=c(21,24)) +
+  scale_fill_manual(values=mypal) +
+  facet_wrap(~celltype) + ylim(0,1) + xlim(0,1) + #guides(fill = guide_colorbar(barwidth = 10, barheight = 1)) +
+  theme_bw(base_size = 12)  + 
+  guides(fill = guide_legend(override.aes = list(shape = 22, size=3))) + 
+  theme(legend.key.size = unit(0, "cm"), 
+        legend.position = "bottom") +
+  labs(shape="", fill="Purity") 
+ggsave("figures/indel_calling_benchmark_precision_recall_curve_plot.png", width = 6.2, height = 3.8)
 ```
 
 
@@ -399,5 +418,3 @@ pa/pb/pc/p_legend + plot_layout(heights = c(0.29,0.29,0.32,0.1))
 ```
 
 **Figure 8: VAF, DP and QUAL score distribution of indel true positive and false positive calls in COLO829 and HCC1937**
-
-

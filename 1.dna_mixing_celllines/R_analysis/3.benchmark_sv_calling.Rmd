@@ -240,7 +240,7 @@ temp_df_sv <- df_sv_full |>
   dplyr::select(cellline,tool,purity,recall,precision, recall_pos, precision_pos) |> unique()
 
 df_sv_full |> group_by(SUPP_VEC, cellline, tool, purity) |> summarise(n=n()) |> ungroup() |> mutate(value=ifelse(SUPP_VEC=="10",-n, n)) |> 
-  ggplot(aes(x=value,y=purity)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("LR novel", "SR specific", "Concordant")) +
+  ggplot(aes(x=value,y=purity)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("FP", "FN", "TP")) +
   geom_text(data = temp_df_sv,aes(x=recall_pos,label=recall*100), size=2, hjust=1.1,alpha=1) + 
   geom_text(data = temp_df_sv,aes(x=precision_pos,label=precision*100), size=2, hjust=-.1, alpha=1) + 
   facet_grid(tool~cellline, scales = "free_x",labeller = labeller(tool=public_tool_names)) +
@@ -274,7 +274,7 @@ temp_df_sv_intersect <- df_sv_full_intersect |>
 
 
 df_sv_full_intersect |> group_by(SUPP_VEC, cellline, purity) |> summarise(n=n()) |> ungroup() |> mutate(value=ifelse(SUPP_VEC=="10",-n, n)) |> 
-  ggplot(aes(x=value,y=purity)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("LR novel", "SR specific", "Concordant")) +
+  ggplot(aes(x=value,y=purity)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("FP", "FN", "TP")) +
   geom_text(data = temp_df_sv_intersect,aes(x=recall_pos,label=recall*100), size=2, hjust=1.1,alpha=1) + 
   geom_text(data = temp_df_sv_intersect,aes(x=precision_pos,label=precision*100), size=2, hjust=-.1, alpha=1) + 
   facet_grid(~cellline, scales = "free_x") +
@@ -332,5 +332,18 @@ ggsave("figures/sv_lr_tool_overlap_hcc1937.png",height = 5,width = 6)
 
 
 
-
+```{r, warning=FALSE, fig.height=3.8, fig.width=6.4}
+temp_df_sv |> 
+  ggplot(aes(x=recall,y=precision, group=tool, fill=purity, color=tool)) +
+  geom_path( linewidth=1, alpha=.6) +
+  geom_point(size=1.2, color="black", alpha=.8, shape=22) +
+  ggsci::scale_color_aaas(labels=public_tool_names) +
+  scale_fill_manual(values=purity_pals) +
+  facet_wrap(~cellline) + ylim(0,1) + xlim(0,1) + 
+  theme_bw(base_size = 12)  + 
+  theme(legend.key.size = unit(.2, "cm"), 
+        legend.position = "bottom") +
+  labs(x="Recall", y="Precision", fill="Purity", color="") 
+ggsave("figures/sv_calling_benchmark_precision_recall_curve_plot.png", width = 6.4, height = 3.8)
+```
 

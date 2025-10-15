@@ -197,7 +197,7 @@ ggsave("figures/sv_depth_benchmarking.png", height = 5.6, width = 14.6)
 ```{r for-presentation, echo=FALSE, eval=TRUE}
 df_sv_full |> group_by(SUPP_VEC, cellline, tool, purity,comb) |> summarise(n=n()) |> ungroup() |> mutate(value=ifelse(SUPP_VEC=="10",-n, n)) |> 
   filter(purity==100) |> 
-  ggplot(aes(x=value,y=comb)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("LR novel", "SR specific", "Concordant")) +
+  ggplot(aes(x=value,y=comb)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("FP", "FN", "TP")) +
   geom_text(data = temp_df_sv |> filter(purity==100),aes(x=recall_pos,label=recall*100), size=2, hjust=1.1,alpha=1) + 
   geom_text(data = temp_df_sv |> filter(purity==100),aes(x=precision_pos,label=precision*100), size=2, hjust=-.1, alpha=1) + 
   facet_nested(tool~cellline, scales = "free_x", labeller = labeller(tool=public_tool_names)) +
@@ -209,7 +209,7 @@ ggsave("figures/sv_depth_benchmarking_purity100_only.png", height = 5.2, width =
 
 df_sv_full |> group_by(SUPP_VEC, cellline, tool, purity,comb) |> summarise(n=n()) |> ungroup() |> mutate(value=ifelse(SUPP_VEC=="10",-n, n)) |> 
   filter(purity==100, tool=="severus") |> 
-  ggplot(aes(x=value,y=comb)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("LR novel", "SR specific", "Concordant")) +
+  ggplot(aes(x=value,y=comb)) + geom_col(aes(fill=SUPP_VEC)) + scale_fill_manual(values = mypal, labels=c("FP", "FN", "TP")) +
   geom_text(data = temp_df_sv |> filter(purity==100,tool=="severus"),aes(x=recall_pos,label=recall*100), size=2, hjust=1.1,alpha=1) + 
   geom_text(data = temp_df_sv |> filter(purity==100,tool=="severus"),aes(x=precision_pos,label=precision*100), size=2, hjust=-.1, alpha=1) + 
   facet_nested(~cellline, scales = "free_x", labeller = labeller(tool=public_tool_names)) +

@@ -33,7 +33,7 @@ rule bcftools_isec:
         walltime=1
     shell:
         """
-        bcftools isec -p {params.pdir} {input.clairs} {input.dpsomatic} 
+        bcftools isec -f PASS -p {params.pdir} {input.clairs} {input.dpsomatic} 
         """
 
 rule intersect_summary:
@@ -55,7 +55,7 @@ rule intersect_summary:
         sample_id = sites_file.parent.stem
         def valid_chrom(chrom: str) -> bool:
             chrom = chrom[3:] if chrom.startswith("chr") else chrom
-            if chrom in [str(i) for i in range(1, 23)] + ["X", "Y"]:
+            if chrom in [str(i) for i in range(1, 23)] + ["X", "Y", "M"]:
                 return True
             return False
 
@@ -85,4 +85,4 @@ rule intersect_summary:
             intersection_recall = len(intersection & gs_sites) / len(gs_sites)
             union_recall = len(union & gs_sites) / len(gs_sites)
             out.write("\t".join([sample_id, str(len(intersection)), str(uniq_clairs), str(uniq_dpsomatic), str(len(union)), f"{intersection_precision:.4f}", f"{intersection_recall:.4f}", f"{union_recall:.4f}"]) + "\n")
-                
+            

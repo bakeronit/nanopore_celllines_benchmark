@@ -1,0 +1,138 @@
+---
+title: "Overview of using CHM13-T2T as reference assembly"
+output: github_document
+bibliography: bibliography.bib
+---
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(GenomicRanges)
+library(VariantAnnotation)
+revision_workdir <- "../"
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center', fig.retina=2)
+```
+
+The use of GRCh38 is suboptimal when compared to CHM13-T2T [@doi:10.1126/science.abj6987], which resolves previously unresolved repetitive, telomeric, and centromeric regions-areas that the study itself identifies as relevant to accuracy. We used GRCh38 reference assembly as it is the current most common used assembly in cancer genomics study, and it offers extensive functional and clinical annotations, integration with large-scale resources (e.g. gnomAD, TCGA), and compatibility with the majority of computational approaches. Meanwhile, here we evaluted the potential improvement from using CHM13-T2T as reference for vairant calling. As [@Paulin2025-ka] had thoroughly benchmarked the SV calling using CHM13-T2T, I compared the alignment results when using GRCh38 and CHM13-T2T and examed the SNV calling results from CHM13-T2T alignment for COLO829 and HCC1937 cell lines.
+
+The reference assembly `chm13v2.0.fa.gz` was download from the [CHM13](https://github.com/marbl/CHM13) GitHub repo and I conducted the same analysis including minimap2 alignment, snv calling. etc. With CHM13-T2T as reference.
+
+### Higher mapping rate and improved sequence divergence
+
+```{r}
+summary_df <- read_tsv(paste0(revision_workdir, "analysis/bam/de.txt"), col_names = c("assembly","sample","sequence_divergence")) |> 
+  inner_join(
+    read_tsv(paste0(revision_workdir, "analysis/bam/mapping_rate.txt"), col_names = c("assembly","sample","mapping_rate")),
+    by=c("assembly","sample")
+  )
+
+summary_df |> knitr::kable(caption = "Improved alignment from CHM13-T2T human genome assembly")
+```
+
+### SNV calling
+
+I did not use our short-read gold standard to benchmark the variant called using CHM13-T2T reference as the gold standard inherently missed variants that are real in CHM13-T2T reference. However, I quantified number of variants that can be found using CHM13-T2T that are 
+
+I also downloaded annotation bed files from [CHM13](https://github.com/marbl/CHM13), including:
+
+ - telomere region
+ - regions non-syntenic (unique) compared to GRCh38
+
+```{r load-bed}
+genome_stratification_dir <- paste0(revision_workdir, "data/")
+
+telomere_bed <- paste0(genome_stratification_dir, "chm13v2.0_telomere.bed")
+telomere_grange <- data.table::fread(telomere_bed, select = 1:3, col.names = c("chr","start","end")) |> filter( chr %in% paste0("chr",c(1:22))) |> GRanges()
+
+t2t_uniq_bed <- paste0(genome_stratification_dir, "chm13v2-unique_to_hg38.bed")
+t2t_uniq_grange <- data.table::fread(t2t_uniq_bed, select = 1:3, col.names = c("chr","start","end")) |> filter( chr %in% paste0("chr",c(1:22))) |> GRanges()
+```
+
+
+```{r}
+dpsomatic <- readVcfAsVRanges(paste0(revision_workdir, "analysis/snvs/deepsomatic/HCC1937.HCC1937_BL/output.snv.vcf.gz"))
+clairs <- readVcfAsVRanges(paste0(revision_workdir, "analysis/snvs/clairS/HCC1937.HCC1937_BL/output.snv.vcf.gz")) 
+clairs <- clairs[clairs@seqnames %in% paste0("chr",c(1:22))]
+dpsomatic <- clairs[dpsomatic@seqnames %in% paste0("chr",c(1:22))]
+
+clairs |> length()
+dpsomatic |> length()
+
+countOverlaps(clairs, telomere_grange) |> sum()
+countOverlaps(clairs, t2t_uniq_grange) |> sum()
+countOverlaps(dpsomatic, telomere_grange) |> sum()
+countOverlaps(dpsomatic, t2t_uniq_grange) |> sum()
+
+```
+
+
+
+```{r}
+chrom_chr <- paste0("chr", 1:22)
+chrom_sizes <- read_tsv("~/working/data/genome/reference.fasta.fai", col_names = c("chrom","length")) |> dplyr::select(chrom, length) |> mutate(offset=cumsum(length) - length) 
+cyto <- read_tsv("/working/genomeinfo/share/For_Ross/sv_annotation/data/GRCh38/cytoBandIdeo.txt.gz", col_names = c("chrom","start","end","arm","stain")) |> 
+  left_join(chrom_sizes) |> filter(chrom %in% chrom_chr) |> mutate(chrom=factor(chrom,levels=chrom_chr))
+
+get_distance_df <- function(benchmark_path) {
+  tp <- read_tsv(paste0(benchmark_path, "tp.vcf"), col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="TP")
+
+  fp <- read_tsv(paste0(benchmark_path, "fp.vcf"), col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FP")
+
+  fn <- read_tsv(paste0(benchmark_path, "fn.vcf"), col_names = c("chrom","pos","id","ref","alt")) |> dplyr::select(c(chrom, pos,ref,alt)) |> 
+  filter(chrom %in% chrom_chr)  |> arrange(chrom, pos, str_rank(chrom,nummeric=T)) |> left_join(chrom_sizes) |> 
+  group_by(chrom) |> 
+  mutate(n_pos=lead(pos), distance=abs(n_pos-pos), abs_pos=pos+offset) |> add_column(type="FN")
+
+  distance_df <- rbind(tp,fp,fn) |> mutate(chrom=factor(chrom,levels=chrom_chr))
+  return(distance_df)
+}
+
+
+```
+
+```{r}
+calculate_bc <- function(df) {
+  total_gs <- df |> filter(type!="FP") |> nrow()
+  tp <- df |> filter(type=="TP") |> nrow()
+  total_call <- df |> filter(type!="FN" ) |> nrow()
+  recall <- tp /total_gs
+  precision <- tp / total_call
+  f1=2 * (precision * recall) / (precision + recall)
+  results <- data.frame("recall"=recall, "precision" = precision, "F1"=f1)
+  return(results)
+}
+
+bc_paths <- c("../analysis/snvs/clairS/COLO829.COLO829_BL/benchmark/", "../analysis/snvs/deepsomatic/COLO829.COLO829_BL/benchmark/", "../analysis/snvs/clairS/HCC1937.HCC1937_BL/benchmark/", "../analysis/snvs/deepsomatic/HCC1937.HCC1937_BL/benchmark/")
+bc_paths |> set_names("clairS/COLO829.COLO829_BL", "deepsomatic/COLO829.COLO829_BL", "clairS/HCC1937.HCC1937_BL", "deepsomatic/HCC1937.HCC1937_BL") |> 
+  map(\(p) get_distance_df(p) |> calculate_bc()) |> list_rbind(names_to="prefix")
+```
+```{r}
+distance_df <- get_distance_df("../analysis/snvs/clairS/COLO829.COLO829_BL/benchmark/")
+ggplot() + 
+  geom_rect(data=cyto, aes(xmin=start,xmax=end, fill=stain), ymin=7.5, ymax=8.5, alpha=.8, color="black", linewidth=.1) +
+  scale_fill_manual(values = circos)+
+  geom_point(data=distance_df,aes(x=pos,y=log10(distance), color=type), alpha=.5, size=.2) + 
+  guides(colour = guide_legend(override.aes = list(size=2))) + 
+  theme_classic() + scale_color_manual(values = mypal2) + 
+  facet_grid(rows=vars(chrom)) + scale_x_continuous(expand = c(0,0), limits = c(0, chrom_sizes[chrom_sizes$chrom=="chr1",]$length), breaks = c(0,5e+7,1e+8,1.5e+8,2e+8), labels = c("0","50M","100M","150M","200M")) +
+  scale_y_continuous(breaks = c(0,4,8), labels = c("0","10k","100m"), limits = c(0,8.5)) +
+  theme(strip.text.y = element_text(angle=0), 
+        strip.text = element_text(size=8.5), 
+        axis.text = element_text(size=7), 
+        strip.background = element_blank(),
+        legend.position = c(0.8,0.35)) + 
+  labs(x="Chromosome position", y="Distance (bp) between adjacent variants", fill="Stain", color="Category")
+```
+```{r}
+df <- readVcf("../analysis/snvs/deepsomatic/COLO829.COLO829_BL/hg38/output.snv.hg38_to_t2t.vcf.gz")
+
+df@rowRanges
+
+```

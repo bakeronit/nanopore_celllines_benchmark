@@ -51,7 +51,7 @@ As expected, the recall is slightly lower compared with each single method but h
 ```{r}
 df |> select(cellline, purity, intersection_precision, intersection_recall, union_recall) |> 
   arrange(cellline, purity, desc=TRUE) |> 
-  knitr::kable(col.names = c("Cell line", "Tumour Purity", "Precison of Intersection", "Recall of Intersection", "Recall of Union" ))
+  knitr::kable(col.names = c("Cell line", "Tumour Purity", "Precision of Intersection", "Recall of Intersection", "Recall of Union" ))
 
 write_tsv(df, file = "results/table-S1.tsv")
 ```
