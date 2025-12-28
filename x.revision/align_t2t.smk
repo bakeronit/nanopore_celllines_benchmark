@@ -1,4 +1,4 @@
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
 
 rule all:
     input:
@@ -18,8 +18,8 @@ wildcard_constraints:
 
 rule align_t2t_minimap2:
     input:
-        bam = "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/bam/R10/sup/{sample}.bam",
-        genome = "/mnt/backedup/home/jiaZ/working/data/genome/chm13/chm13v2.0.fa"
+        bam = "../1.dna_mixing_celllines/work/analysis/bam/R10/sup/{sample}.bam",
+        genome = "data/genome/chm13/chm13v2.0.fa"
     output:
         bam = "analysis/bam/{sample}.bam",
         bai = "analysis/bam/{sample}.bam.bai"
@@ -80,7 +80,7 @@ def estimated_mem(chrom):
 include: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/workflow/rules/snv_calling/clairS.smk"
 use rule call_somatic_snv_clairS as call_somatic_snv_clairS_t2t with:
     input:
-        genome = "/mnt/backedup/home/jiaZ/working/data/genome/chm13/chm13v2.0.fa",
+        genome = "data/genome/chm13/chm13v2.0.fa",
         tumor_bam = "analysis/bam/{sample_t}.bam",
         tumor_bai = "analysis/bam/{sample_t}.bam.bai",
         normal_bam = "analysis/bam/{sample_n}.bam",
@@ -90,7 +90,7 @@ use rule call_somatic_snv_clairS as call_somatic_snv_clairS_t2t with:
     params:
         platform = "ont_r10_dorado_sup_5khz",
         outdir = "analysis/snvs/clairS/{sample_t}.{sample_n}",
-        clair3_model = "/mnt/backedup/home/jiaZ/working/data/ont_models/clair3_models/r1041_e82_400bps_sup_v430",
+        clair3_model = "data/ont_models/clair3_models/r1041_e82_400bps_sup_v430",
         indel_option = "--enable_indel_calling"
     log:
         "logs/clairS/{sample_t}.{sample_n}.log"
@@ -100,7 +100,7 @@ use rule call_somatic_snv_clairS as call_somatic_snv_clairS_t2t with:
 include: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/workflow/rules/snv_calling/deepsomatic.smk" # just import the sif file path
 rule call_somatic_snv_deepsomatic_t2t:
     input:
-        genome="/mnt/backedup/home/jiaZ/working/data/genome/chm13/chm13v2.0.fa",
+        genome="data/genome/chm13/chm13v2.0.fa",
         tumor_bam = "analysis/bam/{sample_t}.bam",
         tumor_bai = "analysis/bam/{sample_t}.bam.bai",
         normal_bam = "analysis/bam/{sample_n}.bam",
@@ -108,7 +108,7 @@ rule call_somatic_snv_deepsomatic_t2t:
     output:
         "analysis/snvs/deepsomatic/{sample_t}.{sample_n}/output.{chrom}.vcf.gz"
     params:
-        model="/mnt/backedup/home/jiaZ/working/data/ont_models/dpsomatic_model/weights-143-0.987994.ckpt"
+        model="data/ont_models/dpsomatic_model/weights-143-0.987994.ckpt"
     threads: 24
     envmodules:
         "singularity/3.7.1"
@@ -135,7 +135,7 @@ rule call_somatic_snv_deepsomatic_t2t:
 delly = config['delly']['path']
 rule call_somatic_sv_delly_t2t:
     input:
-        genome = "/mnt/backedup/home/jiaZ/working/data/genome/chm13/chm13v2.0.fa",
+        genome = "data/genome/chm13/chm13v2.0.fa",
         tumour_bam = "analysis/bam/{sample_t}.bam",
         tumour_bai = "analysis/bam/{sample_t}.bam.bai",
         normal_bam = "analysis/bam/{sample_n}.bam",
@@ -190,7 +190,7 @@ rule call_somatic_sv_nanomonsv_get_t2t:
     input:
         multiext("analysis/svs/nanomonsv/{sample_t}/{sample_t}.","bp_info.sorted.bed.gz", "bp_info.sorted.bed.gz.tbi","deletion.sorted.bed.gz","insertion.sorted.bed.gz","rearrangement.sorted.bedpe.gz"),
         multiext("analysis/svs/nanomonsv/{sample_n}/{sample_n}.","bp_info.sorted.bed.gz","bp_info.sorted.bed.gz.tbi","deletion.sorted.bed.gz","insertion.sorted.bed.gz","rearrangement.sorted.bedpe.gz"),        
-        genome = "/mnt/backedup/home/jiaZ/working/data/genome/chm13/chm13v2.0.fa",
+        genome = "data/genome/chm13/chm13v2.0.fa",
         tumour_bam = "analysis/bam/{sample_t}.bam",
         tumour_bai = "analysis/bam/{sample_t}.bam.bai",
         normal_bam = "analysis/bam/{sample_n}.bam",
@@ -242,7 +242,7 @@ use rule call_somatic_sv_savana as call_somatic_sv_savana_t2t with:
         tumour_bai = "analysis/bam/{sample_t}.bam.bai",
         normal_bam = "analysis/bam/{sample_n}.bam",
         normal_bai = "analysis/bam/{sample_n}.bam.bai",
-        genome = "/mnt/backedup/home/jiaZ/working/data/genome/chm13/chm13v2.0.fa"
+        genome = "data/genome/chm13/chm13v2.0.fa"
     output:
         "analysis/svs/savana/{sample_t}.{sample_n}/{sample_t}.{sample_n}.sv_breakpoints.bedpe",
         "analysis/svs/savana/{sample_t}.{sample_n}/{sample_t}.{sample_n}.sv_breakpoints_read_support.tsv",
@@ -264,12 +264,12 @@ rule call_germline_snv_clair3_t2t:
     input:
         bam = "analysis/bam/{sample}.bam",
         bai = "analysis/bam/{sample}.bam.bai",
-        genome = "/mnt/backedup/home/jiaZ/working/data/genome/chm13/chm13v2.0.fa"
+        genome = "data/genome/chm13/chm13v2.0.fa"
     output:
         "analysis/snvs/clair3/{sample}/phased_merge_output.vcf.gz",
     params:
         outdir = "analysis/snvs/clair3/{sample}",
-        model = "/mnt/backedup/home/jiaZ/working/data/ont_models/clair3_models/r1041_e82_400bps_sup_v430"
+        model = "data/ont_models/clair3_models/r1041_e82_400bps_sup_v430"
     threads: 24
     envmodules:
         "singularity/3.7.1"
@@ -293,7 +293,7 @@ rule call_germline_snv_clair3_t2t:
 
 use rule haplotagging_whatshap as haplotagging_whatshap_t2t with:
     input:
-        genome = "/mnt/backedup/home/jiaZ/working/data/genome/chm13/chm13v2.0.fa",
+        genome = "data/genome/chm13/chm13v2.0.fa",
         vcf = "analysis/snvs/clair3/{sample}/phased_merge_output.vcf.gz",
         bam = "analysis/bam/{sample}.bam",
     output:

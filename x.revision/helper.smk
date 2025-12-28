@@ -1,10 +1,10 @@
 from pathlib import Path
 import pandas as pd
 
-purity_workdir = Path("/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work")
-depth_workdir = Path("/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/2.simulate_sequencing_depth")
+purity_workdir = Path("../1.dna_mixing_celllines/work")
+depth_workdir =  Path("../2.simulate_sequencing_depth")
 
-config_dir = Path("/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config") 
+config_dir = Path("../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config") 
 data_list = [pd.read_csv(f) for f in config_dir.glob("sample*.csv")]
 samples_df = pd.concat(data_list, ignore_index=True)
 
@@ -32,7 +32,7 @@ def generate_paired_samples(df):
 
 def get_gs_sites(wildcards):
     cellline = wildcards.sample_t.split("_")[0].lower()
-    return f"/mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/{cellline}/isec_hom100_snv_dir/sites.txt.gz"
+    return f"../gs/vcfs/{cellline}/isec_hom100_snv_dir/sites.txt.gz"
 
 pairs = generate_paired_samples(samples_df)
 

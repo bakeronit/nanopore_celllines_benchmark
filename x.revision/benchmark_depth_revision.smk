@@ -4,8 +4,8 @@ Perform the same benchmark but with non-standard chromosome excluded
 include: "helper.smk"
 include: "../2.simulate_sequencing_depth/helper.smk"
 
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/bc.config.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/bc.config.yaml"
 
 
 colo829_samples = [f"COLO829_{purity}" for purity in range(40,100,20)] + ["COLO829","COLO829_BL"]

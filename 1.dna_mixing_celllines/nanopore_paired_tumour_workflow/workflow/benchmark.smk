@@ -127,4 +127,4 @@ use rule benchmark_germline_snv_calling as benchmark_somatic_snv_calling_noXY wi
     params:
         outdir = "analysis/benchmark/snvs/somatic/{flowcell}/{mode}/{tool}/{sample_t}.{sample_n}_noXY",
         passed_outdir = "analysis/benchmark/snvs/somatic/{flowcell}/{mode}/{tool}/{sample_t}.{sample_n}_noXY_passed",
-        gs = "/mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937/merged_normed_isec_snv.hom100.goldstandard.noXY.vcf.gz"
+        gs = "../../../gs/vcfs/hcc1937/merged_normed_isec_snv.hom100.goldstandard.noXY.vcf.gz"

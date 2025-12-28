@@ -3,8 +3,8 @@ Perform the same benchmark but with non-standard chromosome excluded as I notice
 """
 include: "helper.smk"
 
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/bc.config.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/bc.config.yaml"
 
 rule all:
     input:
