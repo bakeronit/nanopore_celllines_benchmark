@@ -103,9 +103,6 @@ rule lumpy_svtyper:
         "python/2.7.13"
     shell:
         """
-        set +eu
-        source /mnt/backedup/home/jiaZ/working/local/py27venv/bin/activate
-        set -eu
         svtyper \
          -i {input.vcf} -B {input.tumor_bam},{input.normal_bam}  > {output.vcf} 
         """
