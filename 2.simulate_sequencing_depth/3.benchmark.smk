@@ -1,7 +1,7 @@
 
 
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
-#configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
+#configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
 ClairS_sif = config['clairS']['sif']
 samples = [f"COLO829_{purity}" for purity in range(40,100,20)] + ["COLO829","COLO829_BL"]
 #samples = [f"HCC1937_{purity}" for purity in range(40,100,20)] + ["HCC1937","HCC1937_BL"]
@@ -31,8 +31,8 @@ rule benchmark_somatic_snv_calling_a:
     params:
         outdir = "analysis/benchmark/snvs/somatic/{tool}/{sample_t}.{depth_t}.{sample_n}.{depth_n}",
         passed_outdir = "analysis/benchmark/snvs/somatic/{tool}/{sample_t}.{depth_t}.{sample_n}.{depth_n}_passed",
-        gs = "/mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/colo829/merged_normed_isec_snv.hom100.goldstandard.vcf.gz"
-        #gs = "/mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937/merged_normed_isec_snv.hom100.goldstandard.vcf.gz"
+        gs = "../gs/vcfs/colo829/merged_normed_isec_snv.hom100.goldstandard.vcf.gz"
+        gs = "../gs/vcfs/hcc1937/merged_normed_isec_snv.hom100.goldstandard.vcf.gz"
     threads: 2
     resources:
         mem = 10,

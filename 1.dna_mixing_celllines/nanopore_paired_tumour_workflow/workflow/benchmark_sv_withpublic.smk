@@ -1,7 +1,6 @@
-workdir: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work"
+workdir: "../../work"
 
-##### setup report #####
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
+configfile: "../config/config.yaml"
 
 include: "rules/common.smk"
 pairs = generate_paired_samples(samples_df)
@@ -16,12 +15,12 @@ rule all:
 
 rule jasmine_merge_a:
     input:
-        ref = "/mnt/backedup/home/jiaZ/working/data/genome/reference.fasta",
+        ref = config['reference']['file'],
         vcf = "analysis/svs/simple/{tool}/{flowcell}/{mode}/{sample_t}.{sample_n}.vcf",
     output:
         "analysis/benchmark_public/svs/{tool}/{flowcell}/{mode}/{sample_t}.{sample_n}.merged.vcf",
     params:
-        gs = "/mnt/backedup/home/jiaZ/working/dev/SV_vcf/vcf_files/refined/colo829.refined.vcf",
+        gs = "colo829.refined.vcf",
         tmp_dir = lambda wildcards: f"analysis/benchmark_public/svs/tmp/{wildcards.tool}",
         file_list = lambda wildcards: f"{wildcards.flowcell}_{wildcards.mode}_{wildcards.sample_t}.{wildcards.sample_n}.file.txt",
         refined_vcf = lambda wildcards: f"{wildcards.flowcell}_{wildcards.mode}_{wildcards.sample_t}.{wildcards.sample_n}.refined.vcf",
@@ -47,7 +46,7 @@ rule jasmine_merge_a:
         --comma_filelist max_dist=200 --use_end --ignore_strand --allow_intrasample --nonlinear_dist out_file={params.tmp_dir}/{params.refined_vcf}
 
         ls -U {params.gs} {params.tmp_dir}/{params.refined_vcf} > {params.tmp_dir}/{params.refined_file_list}
-        /mnt/backedup/home/jiaZ/working/local/Jasmine/jasmine file_list={params.tmp_dir}/{params.refined_file_list} out_file={output} --ignore_strand --use_end
+        jasmine file_list={params.tmp_dir}/{params.refined_file_list} out_file={output} --ignore_strand --use_end
 
         jasmine --dup_to_ins --postprocess_only out_file={output} out_dir={params.out_dir}
         """

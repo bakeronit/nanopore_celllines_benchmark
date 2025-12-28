@@ -27,8 +27,8 @@ rule get_simple_type:
         lumpy = "analysis/svs/jasmine_merge/{cell}/{lib}/{tumor}.{normal}.lumpy.simple.vcf",
         delly = "analysis/svs/jasmine_merge/{cell}/{lib}/{tumor}.{normal}.delly.simple.vcf",
     params:
-        jasmine_env = "/working/lab_nicw/jiaZ/local/micromanba_envs/jasmine",
-        script = "/mnt/backedup/home/jiaZ/working/dev/SV_vcf/simple_event_annotation.py",
+        jasmine_env = config['jasmine_env'],
+        script = config['simple_script'],
     shell:
         """
         module load conda-envs/base bcftools/1.19
@@ -48,12 +48,12 @@ rule jasmine_merge_tools:
         gridss = rules.get_simple_type.output.gridss,
         lumpy = rules.get_simple_type.output.lumpy,
         delly = rules.get_simple_type.output.delly,
-        genome = "/mnt/backedup/home/jiaZ/working/data/genome/reference.fasta"
+        genome = config['reference']
     output:
         merged = "analysis/svs/jasmine_merge/{cell}/{lib}/{tumor}.{normal}.merged.vcf",
         overlap = "analysis/svs/jasmine_merge/{cell}/{lib}/{tumor}.{normal}.merged.supp2.vcf"
     params:
-        jasmine_env = "/working/lab_nicw/jiaZ/local/micromanba_envs/jasmine",
+        jasmine_env = config['jasmine_env'],
         out_dir = "analysis/svs/jasmine_merge/{cell}/{lib}/jasmine_out",
         simple_filelist = "analysis/svs/jasmine_merge/{cell}/{lib}.simple.files.txt"
     shell:
@@ -70,7 +70,7 @@ rule jasmine_merge_tools:
         jasmine file_list={params.out_dir}/{wildcards.tumor}.{wildcards.normal}.lumpy.simple_dupToIns_normalizeTypes.vcf max_dist=200 --allow_intrasample --comma_filelist --use_end --ignore_strand --nonlinear_dist out_file={params.out_dir}/{wildcards.tumor}.{wildcards.normal}.lumpy.refined.vcf
 
         ls {params.out_dir}/*.refined.vcf > {params.out_dir}/refined_files.txt
-        /mnt/backedup/home/jiaZ/working/local/Jasmine/jasmine file_list={params.out_dir}/refined_files.txt out_file={output.merged} --use_end --ignore_strand
+        jasmine file_list={params.out_dir}/refined_files.txt out_file={output.merged} --use_end --ignore_strand
 
         bcftools filter -i 'SUPP>1' {output.merged} > {output.overlap}
         """
@@ -91,7 +91,7 @@ rule jasmine_merge_libs:
         dup_to_ins =  "analysis/svs/jasmine_merge/{cell}/{cell}.final_merged.supp2_dupToIns.vcf",
     params:
         out_dir = "analysis/svs/jasmine_merge/{cell}",
-        jasmine_env = "/working/lab_nicw/jiaZ/local/micromanba_envs/jasmine",
+        jasmine_env = config['jasmine_env']
     shell:
         """
         module load conda-envs/base
@@ -99,7 +99,7 @@ rule jasmine_merge_libs:
         conda activate {params.jasmine_env}
         
         ls {input} > {params.out_dir}/final_merged.txt 
-        /mnt/backedup/home/jiaZ/working/local/Jasmine/jasmine file_list={params.out_dir}/final_merged.txt out_file={output.merged} --use_end --ignore_strand
+        jasmine file_list={params.out_dir}/final_merged.txt out_file={output.merged} --use_end --ignore_strand
 
         bcftools filter -i 'SUPP>1' {output.merged} > {output.overlap}
 

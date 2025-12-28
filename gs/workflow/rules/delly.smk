@@ -5,7 +5,7 @@ rule delly_call:
         ref = config['reference'],
         tumor_bam = "analysis/bam/{cell}/{lib}/{tumor}.bam",
         normal_bam = "analysis/bam/{cell}/{lib}/{normal}.bam",
-        blacklist_bed = "/mnt/backedup/home/jiaZ/working/data/hg38-blacklist.v2.bed",
+        blacklist_bed = config['blacklist_bed'],
     output:
         bcf = "analysis/svs/delly/{cell}/{lib}/{tumor}.{normal}.pre.bcf",
         sample_tsv = "analysis/svs/delly/{cell}/{lib}/{tumor}.{normal}.tsv",

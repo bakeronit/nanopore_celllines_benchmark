@@ -1,8 +1,7 @@
-workdir: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work"
+workdir: "../../work"
 
-##### setup report #####
-#configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
+configfile: "../config/config.yaml"
+#configfile: "../config/config.hcc1937.yaml"
 
 include: "rules/common.smk"
 include: "rules/sv_calling/nanomonsv.smk"
@@ -49,8 +48,8 @@ rule get_simple_svtype:
        filtered = "analysis/svs/simple/{tool}/{flowcell}/{mode}/{sample_t}.{sample_n}.vcf"
     threads: 1
     params:
-        script = "~/working/dev/SV_vcf/simple_event_annotation.py",
-        ref = lambda w: "-r ~/working/data/genome/reference.fasta" if w.tool=="nanomonsv" else ""
+        script = "simple_event_annotation.py",
+        ref = lambda w: f"-r {config['reference']['file']}" if w.tool=="nanomonsv" else ""
     resources:
         mem = 1,
         walltime = 1
@@ -60,7 +59,7 @@ rule get_simple_svtype:
     shell:
         """
         set +eu
-        conda activate ~/working/local/micromanba_envs/jasmine
+        conda activate jasmine
         set -eu
 
         python {params.script} {input} -t {wildcards.tool} -o {output.simple} {params.ref}
@@ -70,12 +69,12 @@ rule get_simple_svtype:
 
 rule jasmine_merge:
     input:
-        ref = "/mnt/backedup/home/jiaZ/working/data/genome/reference.fasta",
+        ref = config['reference']['file'],
         vcf = "analysis/svs/simple/{tool}/{flowcell}/{mode}/{sample_t}.{sample_n}.vcf",
     output:
         "analysis/benchmark/svs/{tool}/{flowcell}/{mode}/{sample_t}.{sample_n}.merged.vcf",
     params:
-        gs = lambda wildcards: f"/mnt/backedup/home/jiaZ/working/general/goldstandard/structural_variation/analysis/svs/jasmine_merge/{wildcards.sample_t.lower().split("_")[0]}/{wildcards.sample_t.lower().split("_")[0]}.final_merged.supp2_dupToIns.vcf",
+        gs = lambda wildcards: f"../../../structural_variation/analysis/svs/jasmine_merge/{wildcards.sample_t.lower().split("_")[0]}/{wildcards.sample_t.lower().split("_")[0]}.final_merged.supp2_dupToIns.vcf",
         tmp_dir = lambda wildcards: f"analysis/benchmark/svs/tmp/{wildcards.tool}",
         file_list = lambda wildcards: f"{wildcards.flowcell}_{wildcards.mode}_{wildcards.sample_t}.{wildcards.sample_n}.file.txt",
         refined_vcf = lambda wildcards: f"{wildcards.flowcell}_{wildcards.mode}_{wildcards.sample_t}.{wildcards.sample_n}.refined.vcf",
@@ -90,7 +89,7 @@ rule jasmine_merge:
     shell:
         """
         set +eu
-        conda activate ~/working/local/micromanba_envs/jasmine
+        conda activate jasmine
         set -eu
 
         mkdir -p {params.tmp_dir}
@@ -101,14 +100,14 @@ rule jasmine_merge:
         --comma_filelist max_dist=200 --use_end --ignore_strand --allow_intrasample --nonlinear_dist out_file={params.tmp_dir}/{params.refined_vcf}
 
         ls -U {params.gs} {params.tmp_dir}/{params.refined_vcf} > {params.tmp_dir}/{params.refined_file_list}
-        /mnt/backedup/home/jiaZ/working/local/Jasmine/jasmine file_list={params.tmp_dir}/{params.refined_file_list} out_file={output} --ignore_strand --use_end
+        jasmine file_list={params.tmp_dir}/{params.refined_file_list} out_file={output} --ignore_strand --use_end
 
         jasmine --dup_to_ins --postprocess_only out_file={output} out_dir={params.out_dir}
         """
 
 rule jasmine_merge_all:
     input:
-        ref = "/mnt/backedup/home/jiaZ/working/data/genome/reference.fasta",
+        ref = config['reference']['file'],
         delly = "analysis/benchmark/svs/tmp/delly/{flowcell}_{mode}_{sample_t}.{sample_n}.refined.vcf",
         nanomonsv = "analysis/benchmark/svs/tmp/nanomonsv/{flowcell}_{mode}_{sample_t}.{sample_n}.refined.vcf",
         savana = "analysis/benchmark/svs/tmp/savana/{flowcell}_{mode}_{sample_t}.{sample_n}.refined.vcf",
@@ -118,7 +117,7 @@ rule jasmine_merge_all:
         supp2 = "analysis/benchmark/svs/{flowcell}_{mode}_{sample_t}.{sample_n}.tools_merged.supp2.vcf",
         all_merged = "analysis/benchmark/svs/{flowcell}_{mode}_{sample_t}.{sample_n}.all_merged.vcf",
     params:
-        gs = lambda wildcards: f"/mnt/backedup/home/jiaZ/working/general/goldstandard/structural_variation/analysis/svs/jasmine_merge/{wildcards.sample_t.lower().split("_")[0]}/{wildcards.sample_t.lower().split("_")[0]}.final_merged.supp2_dupToIns.vcf",
+        gs = lambda wildcards: f"../../../gs/structural_variation/analysis/svs/jasmine_merge/{wildcards.sample_t.lower().split("_")[0]}/{wildcards.sample_t.lower().split("_")[0]}.final_merged.supp2_dupToIns.vcf",
         tmp_dir = lambda wildcards: f"analysis/benchmark/svs/tmp",
         file_list = lambda wildcards: f"{wildcards.flowcell}_{wildcards.mode}_{wildcards.sample_t}.{wildcards.sample_n}.all_file.txt",
         bench_file_list = lambda wildcards: f"{wildcards.flowcell}_{wildcards.mode}_{wildcards.sample_t}.{wildcards.sample_n}.all_file.bc.txt",
@@ -133,7 +132,7 @@ rule jasmine_merge_all:
     shell:
         """
         set +eu
-        conda activate ~/working/local/micromanba_envs/jasmine
+        conda activate jasmine
         set -eu
 
         ls -U {input.delly} {input.nanomonsv} {input.savana} {input.severus} > {params.tmp_dir}/{params.file_list}

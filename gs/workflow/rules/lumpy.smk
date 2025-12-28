@@ -44,7 +44,7 @@ rule lumpy:
         normal_ds_bam = "analysis/bam/{cell}/{lib}/{normal}.discordants.bam",
         tumor_ss_bam = "analysis/bam/{cell}/{lib}/{tumor}.splitters.bam",
         normal_ss_bam = "analysis/bam/{cell}/{lib}/{normal}.splitters.bam",
-        blacklist_bed = "/mnt/backedup/home/jiaZ/working/data/hg38-blacklist.v2.bed"
+        blacklist_bed = config['backlist_bed'],
     output:
         vcf = "analysis/svs/lumpy/{cell}/{lib}/{tumor}.{normal}.raw.vcf",
     params:

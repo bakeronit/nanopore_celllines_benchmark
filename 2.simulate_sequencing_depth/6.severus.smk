@@ -1,5 +1,5 @@
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
-#configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
+#configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
 colo829_samples = [f"COLO829_{purity}" for purity in range(40,100,20)] + ["COLO829","COLO829_BL"]
 hcc1937_samples = [f"HCC1937_{purity}" for purity in range(40,100,20)] + ["HCC1937","HCC1937_BL"]
 
@@ -40,7 +40,7 @@ rule call_somatic_sv_severus_a:
     shell:
         """
         set +eu
-        conda activate ~/working/local/micromanba_envs/severus
+        conda activate severus
         set -eu 
         severus --target-bam {input.hp_tagged_tumour_bam} \
             --control-bam {input.hp_tagged_normal_bam} \
@@ -99,7 +99,7 @@ rule call_germline_snv_clair3_a:
         "analysis/snvs/clair3/{sample_n}.{depth_n}/phased_merge_output.vcf.gz"
     params:
         outdir = "analysis/snvs/clair3/{sample_n}.{depth_n}",
-        model = "/mnt/backedup/home/jiaZ/working/data/ont_models/clair3_models/r1041_e82_400bps_sup_v430"
+        model = "r1041_e82_400bps_sup_v430"
     threads: 24
     envmodules:
         "singularity/3.7.1"

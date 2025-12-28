@@ -13,14 +13,6 @@ parser.add_argument("-r","--reference", nargs="?", help="The path to reference f
 args = parser.parse_args()
 
 
-"""
-## These are my test files in writing.
-##jasmine needs CHR2, END,SVTYPE, SVLEN, 
-savana_file = "/mnt/backedup/home/jiaZ/working/testing/test_sv_calling/savana2_output/COLO829.COLO829_BL.classified.somatic.vcf"
-severus_file = "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/svs/severus/R10/sup/COLO829.COLO829_BL/somatic_SVs/severus_somatic_COLO829.haplotagged.vcf"
-delly_file = "b.backup.dellyvcf"
-file_in = VCF(args.filename)
-"""
 
 type = args.type.lower()
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-#configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
+#configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
 ClairS_sif = config['clairS']['sif']
-DP_somatic_sif = "/mnt/backedup/home/jiaZ/working/imgs/deepsomatic/deepsomatic_1.6.0.sif"
+DP_somatic_sif = "deepsomatic_1.6.0.sif"
 #samples = [f"COLO829_{purity}" for purity in range(40,100,20)] + ["COLO829","COLO829_BL"]
 samples = [f"HCC1937_{purity}" for purity in range(40,100,20)] + ["HCC1937","HCC1937_BL"]
 wildcard_constraints:
@@ -33,7 +33,7 @@ use rule call_somatic_snv_clairS as call_somatic_snv_clairS_a with:
     params:
         platform = "ont_r10_dorado_sup_5khz",
         outdir = "analysis/snvs/clairS/{sample_t}.{depth_t}.{sample_n}.{depth_n}",
-        clair3_model = "/mnt/backedup/home/jiaZ/working/data/ont_models/clair3_models/r1041_e82_400bps_sup_v430",
+        clair3_model = "r1041_e82_400bps_sup_v430",
         indel_option = "--enable_indel_calling"
     log:
         "logs/clairS/{sample_t}.{depth_t}.{sample_n}.{depth_n}.log"
@@ -50,7 +50,7 @@ rule call_somatic_snv_deepsomatic_a:
     output:
         "analysis/snvs/deepsomatic/{sample_t}.{depth_t}.{sample_n}.{depth_n}/output.vcf.gz"
     params:
-        model="/mnt/backedup/home/jiaZ/working/data/ont_models/dpsomatic_model/weights-143-0.987994.ckpt"
+        model="dpsomatic_model/weights-143-0.987994.ckpt"
     threads: 48
     resources:
         mem=40,

@@ -1,6 +1,6 @@
 
 
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
 
 ClairS_sif = config['clairS']['sif']
 #samples = [f"COLO829_{purity}" for purity in range(40,100,20)] + ["COLO829","COLO829_BL"]
@@ -31,8 +31,8 @@ rule benchmark_somatic_indel_calling_a:
     params:
         outdir = "analysis/benchmark/indels/somatic/{tool}/{sample_t}.{depth_t}.{sample_n}.{depth_n}",
         norm_vcf = "analysis/snvs/{tool}/{sample_t}.{depth_t}.{sample_n}.{depth_n}/norm_indel.vcf.gz",
-        #gs = "/mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/colo829/merged_normed_isec_indel.goldstandard.vcf.gz"
-        gs = "/mnt/backedup/home/jiaZ/working/general/goldstandard/vcfs/hcc1937/merged_normed_isec_indel.goldstandard.vcf.gz"
+        gs = "../gs/vcfs/colo829/merged_normed_isec_indel.goldstandard.vcf.gz"
+        gs = "../gs/vcfs/hcc1937/merged_normed_isec_indel.goldstandard.vcf.gz"
     threads: 2 
     resources:
         mem = 10,

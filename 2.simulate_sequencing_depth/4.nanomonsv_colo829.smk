@@ -6,12 +6,10 @@
 ## nanomonsv_postprocess_sbnd: annotate svs and classify sbnd.
 ###########
 
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
-#configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
+configfile: "../1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
 colo829_samples = [f"COLO829_{purity}" for purity in range(40,100,20)] + ["COLO829","COLO829_BL"]
-hcc1937_samples = [f"HCC1937_{purity}" for purity in range(40,100,20)] + ["HCC1937","HCC1937_BL"]
 wildcard_constraints:
-    sample = "|".join(colo829_samples + hcc1937_samples),
+    sample = "|".join(colo829_samples),
     depth = "|".join(["60x","45x","30x","15x"])
 
 include: "helper.smk"

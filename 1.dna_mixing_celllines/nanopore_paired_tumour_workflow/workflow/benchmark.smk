@@ -1,9 +1,8 @@
-workdir: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work"
+workdir: "../../work"
 
-##### setup report #####
-#configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/bc.config.yaml"
+#configfile:"../config/config.yaml"
+configfile: "../config/config.hcc1937.yaml"
+configfile: "../config/bc.config.yaml"
 
 include: "rules/common.smk"
 include: "rules/snv_calling/clair3.smk"

@@ -1,4 +1,4 @@
-script="/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/scripts"
+script="../../../scripts"
 bamcov = config['bamcov']
 rule bc_summary:
     input:

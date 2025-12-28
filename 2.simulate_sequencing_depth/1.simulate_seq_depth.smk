@@ -12,9 +12,9 @@ rule all:
 
 rule subsample_bam:
     input:
-        mosdepth = "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/qc/bam/R10/sup/{sample}.mosdepth.summary.txt",
-        bam = "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/bam/R10/sup/{sample}.bam",
-        bai = "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/bam/R10/sup/{sample}.bam.bai"
+        mosdepth = "../1.dna_mixing_celllines/work/analysis/qc/bam/R10/sup/{sample}.mosdepth.summary.txt",
+        bam = "../1.dna_mixing_celllines/work/analysis/bam/R10/sup/{sample}.bam",
+        bai = "../1.dna_mixing_celllines/work/analysis/bam/R10/sup/{sample}.bam.bai"
     output:
         bam = "analysis/bam/{sample}.{depth}.bam",
         bai = "analysis/bam/{sample}.{depth}.bam.bai"

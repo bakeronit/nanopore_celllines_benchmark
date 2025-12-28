@@ -5,7 +5,7 @@ rule gridss:
         ref = config['reference'],
         tumor_bam = "analysis/bam/{cell}/{lib}/{tumor}.bam",
         normal_bam = "analysis/bam/{cell}/{lib}/{normal}.bam",
-        blacklist_bed = "/mnt/backedup/home/jiaZ/working/data/hg38-blacklist.v2.bed"
+        blacklist_bed = config['blacklist_bed']
     output:
         raw_vcf = "analysis/svs/gridss/{cell}/{lib}/{tumor}.{normal}.raw.vcf",
         filtered_vcf = "analysis/svs/gridss/{cell}/{lib}/{tumor}.{normal}.pass.vcf"
@@ -55,9 +55,9 @@ rule gripss_filter:
         "analysis/svs/gridss/{cell}/{lib}/{tumor}.{normal}/{tumor}.bam.gripss.filtered.vcf.gz"
     params:
         gridss_path = config['gridss']['path'],
-        pon_sgl = "/mnt/backedup/home/jiaZ/working/local/gridss/v5_34/ref/38/sv/sgl_pon.38.bed.gz",
-        pon_sv = "/mnt/backedup/home/jiaZ/working/local/gridss/v5_34/ref/38/sv/sv_pon.38.bedpe.gz",
-        repeat_mask = "/mnt/backedup/home/jiaZ/working/local/gridss/v5_34/ref/38/sv/repeat_mask_data.38.fa.gz",
+        pon_sgl = config['pon_sgl'],
+        pon_sv = config['pon_sv'],
+        repeat_mask = config['repeat_mask'],
         outdir = "analysis/svs/gridss/{cell}/{lib}/{tumor}.{normal}"
     threads: 1
     resources:

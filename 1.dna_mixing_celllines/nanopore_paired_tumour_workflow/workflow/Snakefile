@@ -1,11 +1,8 @@
 ##### define the workdir for workflow
-workdir: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work"
+workdir: "../../work"
 
-##### setup report #####
-configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.yaml"
-#configfile: "/mnt/backedup/home/jiaZ/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/nanopore_paired_tumour_workflow/config/config.hcc1937.yaml"
-
-#report: "report/workflow.rst"
+configfile: "../config/config.yaml"
+#configfile: "../config/config/config.hcc1937.yaml"
 
 localrules:
     all,
@@ -15,7 +12,7 @@ include: "rules/common.smk"
 include: "rules/qc.smk"
 include: "rules/gather_data.smk"
 include: "rules/dorado_basecalling.smk"
-include: "rules/trim_repair.smk"  ### NOTES: I didn't use trim_repir for this project!!!!!
+#include: "rules/trim_repair.smk"  
 include: "rules/minimap2_align.smk"
 include: "rules/methylation/methylation.smk"
 include: "rules/snv_calling/phasing.smk"

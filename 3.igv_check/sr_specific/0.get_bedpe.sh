@@ -1,5 +1,5 @@
-colo829_gs=/mnt/backedup/home/jiaZ/working/general/goldstandard/structural_variation/analysis/svs/jasmine_merge/colo829/colo829.final_merged.supp2.vcf
-hcc1937_gs=/mnt/backedup/home/jiaZ/working/general/goldstandard/structural_variation/analysis/svs/jasmine_merge/hcc1937/hcc1937.final_merged.supp2.vcf
+colo829_gs=../../gs/structural_variation/analysis/svs/jasmine_merge/colo829/colo829.final_merged.supp2.vcf
+hcc1937_gs=../../gs/structural_variation/analysis/svs/jasmine_merge/hcc1937/hcc1937.final_merged.supp2.vcf
 
 module load bcftools/1.19
 bcftools view -i ID=@colo829.sr_specific.id $colo829_gs | \
