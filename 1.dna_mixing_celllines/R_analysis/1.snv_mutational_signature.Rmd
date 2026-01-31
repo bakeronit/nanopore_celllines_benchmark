@@ -26,13 +26,13 @@ knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = F
 Seems HCC1937 had excessive mutations on chromosome X, this is because this cellline has no normal chrX, instead, at least one copy of derived X chromosome. I found most of them could be germline, thus variants on chrX had been excluded in all signature analysis.
 
 ```{r}
-read_tsv("~/working/general/goldstandard/vcfs/colo829/merged_normed_isec_snv.hom100.goldstandard.vcf.gz", col_names = FALSE, comment = "#") |> 
+read_tsv("../../gs/vcfs/colo829/merged_normed_isec_snv.hom100.goldstandard.vcf.gz", col_names = FALSE, comment = "#") |> 
   dplyr::select(X1, X2, X4, X5) |> dplyr::rename("chr"=X1,"pos"=X2, "ref"=X4, "alt"=X5) |> add_column(sample="hcc1937") |> filter(chr %in% chrom_chr) |> 
   mutate(chr=factor(chr, levels=chrom_chr)) |> 
   ggplot(aes(x=chr)) + 
   geom_bar()
 
-read_tsv("~/working/general/goldstandard/vcfs/hcc1937/merged_normed_isec_indel.goldstandard.vcf.gz", col_names = FALSE, comment = "#") |> 
+read_tsv("../../gs/vcfs/hcc1937/merged_normed_isec_indel.goldstandard.vcf.gz", col_names = FALSE, comment = "#") |> 
   dplyr::select(X1, X2, X4, X5) |> dplyr::rename("chr"=X1,"pos"=X2, "ref"=X4, "alt"=X5) |> add_column(sample="hcc1937") |> filter(chr %in% chrom_chr) |> 
   mutate(chr=factor(chr, levels=chrom_chr)) |> 
   ggplot(aes(x=chr)) + 
@@ -40,13 +40,13 @@ read_tsv("~/working/general/goldstandard/vcfs/hcc1937/merged_normed_isec_indel.g
 ```
 
 ```{r}
-clairS_lr <- list.files("~/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/snvs/clairS/R10/sup", pattern = "output.vcf.gz$", full.names = TRUE, recursive = TRUE) |> 
+clairS_lr <- list.files("../../1.dna_mixing_celllines/work/analysis/snvs/clairS/R10/sup", pattern = "output.vcf.gz$", full.names = TRUE, recursive = TRUE) |> 
   set_names(\(f) dirname(f)) |> 
   map(\(f) read_tsv(f, col_names=FALSE,comment = "#") |> dplyr::select(X1, X2, X4, X5, X6) |> dplyr::rename("chr"=X1,"pos"=X2, "ref"=X4, "alt"=X5, "qual"=X6)  ) |> 
   list_rbind(names_to = "prefix") |> 
   mutate(sample=basename(prefix) |> str_split_i("\\.",i=1), tool=str_extract(prefix,"deepsomatic|clairS"), purity=str_split_i(sample,"_",i=2), purity=ifelse(is.na(purity),"100",purity))|> dplyr::select(-prefix)
 
-dpsomatic_lr <- list.files("~/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/snvs/deepsomatic//R10/sup", pattern = "output.somatic.vcf.gz$", full.names = TRUE, recursive = TRUE) |> 
+dpsomatic_lr <- list.files("../../1.dna_mixing_celllines/work/analysis/snvs/deepsomatic//R10/sup", pattern = "output.somatic.vcf.gz$", full.names = TRUE, recursive = TRUE) |> 
   set_names(\(f) dirname(f)) |> 
   map(\(f) read_tsv(f, col_names=FALSE,comment = "#") |> dplyr::select(X1, X2, X4, X5, X6) |> dplyr::rename("chr"=X1,"pos"=X2, "ref"=X4, "alt"=X5, "qual"=X6)  ) |> 
   list_rbind(names_to = "prefix") |> 
@@ -69,7 +69,7 @@ dpsomatic_lr_mut <- dpsomatic_lr |>  mutate(celltype=ifelse(startsWith(sample,"C
 ### The mutational spectrum in COLO829 gold standard
 
 ```{r, fig.height=2.6, fig.width=10.6}
-gc_colo829 <- read_tsv("~/working/general/goldstandard/vcfs/colo829/merged_normed_isec_snv.hom100.goldstandard.vcf.gz", col_names = FALSE, comment = "#") |> 
+gc_colo829 <- read_tsv("../../gs/vcfs/colo829/merged_normed_isec_snv.hom100.goldstandard.vcf.gz", col_names = FALSE, comment = "#") |> 
 dplyr::select(X1, X2, X4, X5) |> dplyr::rename("chr"=X1,"pos"=X2, "ref"=X4, "alt"=X5) |> add_column(sample="colo829") |> 
   as.data.frame() |> mut.to.sigs.input(sample.id = "sample", bsg=BSgenome.Hsapiens.UCSC.hg38)
 
@@ -128,7 +128,7 @@ The signatures in samples of different purity levels
 ```{r}
 cosmicv3_h38  <- read_table("data/COSMIC_v3.4_SBS_GRCh38.txt") |> column_to_rownames("Type")
 cosmicv3_h38 <- cosmicv3_h38[match(colnames(dpsomatic_lr_mut), rownames(cosmicv3_h38)),] |> t() |> as.data.frame()
-cosmicv2_h38 <- read_table("../../../breast_cancer_tms_Amanda2023/brca_mutational_signatures/data/COSMIC/COSMIC_v2_SBS_GRCh38.txt") |> column_to_rownames("Type")
+cosmicv2_h38 <- read_table("data/COSMIC_v2_SBS_GRCh38.txt") |> column_to_rownames("Type")
 cosmicv2_h38 <- cosmicv2_h38[match(colnames(dpsomatic_lr_mut), rownames(cosmicv2_h38)),] |> t() |> as.data.frame()
 
 #clairS_sigs <- rownames(clairS_lr_mut) |> 
@@ -263,7 +263,7 @@ ggsave("figures/mut_cat_colo829_dpsomatic_fp.png", width = 10.6, height = 8.6)
 ### The mutational spectrum in HCC1937 gold standard
 
 ```{r,fig.height=2.6, fig.width=10.6}
-gc_hcc1937 <- read_tsv("~/working/general/goldstandard/vcfs/hcc1937/merged_normed_isec_snv.hom100.goldstandard.vcf.gz", col_names = FALSE, comment = "#") |> 
+gc_hcc1937 <- read_tsv("../../gs/vcfs/hcc1937/merged_normed_isec_snv.hom100.goldstandard.vcf.gz", col_names = FALSE, comment = "#") |> 
 dplyr::select(X1, X2, X4, X5) |> dplyr::rename("chr"=X1,"pos"=X2, "ref"=X4, "alt"=X5) |> add_column(sample="hcc1937") |> filter(chr%in% chrom_chr, chr!="chrX") |> 
   as.data.frame() |> mut.to.sigs.input(sample.id = "sample", bsg=BSgenome.Hsapiens.UCSC.hg38)
 

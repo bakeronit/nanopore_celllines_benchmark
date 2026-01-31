@@ -60,7 +60,7 @@ epic_df |> filter(sample=="HCC1937") |> mutate(start=pos-1) |>
 Then load the results from nanopore data
 
 ```{r, cache=TRUE}
-bedtools <- "/software/bedtools/bedtools2-2.31.1/bin/bedtools"
+bedtools <- "bedtools"
 
 read_mod_bed <- function(filename) {
   sample <- basename(filename) |> str_remove(".bed.gz")|> str_split_i("_",i=1)

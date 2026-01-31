@@ -34,10 +34,6 @@ rule jasmine_merge_a:
         "conda-envs/base"
     shell:
         """
-        set +eu
-        conda activate ~/working/local/micromanba_envs/jasmine
-        set -eu
-
         mkdir -p {params.tmp_dir}
         ls {input.vcf} > {params.tmp_dir}/{params.file_list}
 

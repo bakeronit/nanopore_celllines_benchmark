@@ -37,3 +37,4 @@ gs/structural_variation/
 **/analysis/
 **/data/
 x.revision/run_qalter.sh
+data_big.list

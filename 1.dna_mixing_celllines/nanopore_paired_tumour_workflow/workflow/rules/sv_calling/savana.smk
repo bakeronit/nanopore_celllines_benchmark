@@ -33,7 +33,7 @@ rule call_somatic_sv_savana:
     shell:
         """
         set +eu
-        conda activate ~/working/local/micromanba_envs/savana
+        conda activate savana
         set -eu
 
         if [ "$(ls -A {params.outdir})" ]; then   # need to make sure the outdir is empty

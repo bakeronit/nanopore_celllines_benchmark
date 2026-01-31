@@ -28,7 +28,7 @@ rule call_somatic_sv_severus:
     shell:
         """
         set +eu
-        conda activate ~/working/local/micromanba_envs/severus
+        conda activate severus
         set -eu 
         severus --target-bam {input.hp_tagged_tumour_bam} \
             --control-bam {input.hp_tagged_normal_bam} \

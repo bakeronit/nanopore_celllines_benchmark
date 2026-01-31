@@ -30,4 +30,4 @@ list.files(paste0(workdir,"analysis/bam"), pattern="*.mosdepth.summary.txt",full
 ggsave("figures/bam_depth_check.png", height = 4,width = 7.8) 
 ```
 
-Looks perfect, nothing to worry.
+Looks good.

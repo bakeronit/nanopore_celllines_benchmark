@@ -46,7 +46,7 @@ rule call_somatic_sv_savana_a:
     shell:
         """
         set +eu
-        conda activate ~/working/local/micromanba_envs/savana
+        conda activate savana
         set -eu
 
         if [ "$(ls -A {params.outdir})" ]; then

@@ -5,5 +5,7 @@ nohup.out
 nanopore_paired_tumour_workflow/workflow/savana_cnv.smk
 nanopore_paired_tumour_workflow/workflow/rules/sv_calling/savana1.20_cnv.smk
 nanopore_paired_tumour_workflow/workflow/rules/snv_calling/snv_calling.smk
+nanopore_paired_tumour_workflow/workflow/rules/sv_calling/savana1.20.smk
 nanopore_paired_tumour_workflow/workflow/rules/f5c_methylation.smk
 R_analysis/config.local.R
+R_analysis/germline_bleed.R

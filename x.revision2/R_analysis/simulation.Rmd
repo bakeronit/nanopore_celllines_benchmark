@@ -1,0 +1,61 @@
+---
+title: "Supplementary note: simulation with nanoSim"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center',fig.retina=2)
+```
+
+We implemented a small in-silico simulation with NanoSim from synthetic tumour genome, to provide a controlled stress-test of somatic variant calling (SNVs) across tumour purity and sequencing depth while keeping the main benchmarking focused on empirical ONT mixture datasets.
+
+# Overview
+
+## Goal
+This simulation is designed as a *supplementary sanity check* (orthogonal to the real mixture benchmarking) to isolate expected failure modes as a function of:
+
+- Tumour purity (fraction of tumour reads in the mixture)
+- Sequencing depth (15×–60× on chr22)
+
+We simulate **matched tumour/normal** ONT datasets on a **single chromosome (chr22)** with:
+- A shared germline background present in both tumour and normal
+- Additional somatic SNVs present only in tumour (the ground truth)
+
+
+## Inputs
+- `chr22.fasta` from GRCh38 (reference genome FASTA; indexed)
+- A real ONT FASTQ for NanoSim training, COLO829_BL.bam
+- Synthetic germline genome and tumour genome for COLO829_BL and COLO829.
+
+**Tools:**
+
+ - `SAMtools`
+ - `BCFtools`
+ - `NanoSim`
+ - `cstag`
+ - `chopper`
+ - `minimap2`
+ - `clairS`
+ - `DeepSomatic`
+ 
+See detailed steps in the [Snakefile](../Snakefile)
+
+## Bechmarking results
+
+```{r}
+df <- list.files("../benchmark", pattern = "summary.txt", full.names = TRUE, recursive = TRUE) |> 
+  set_names(\(f) dirname(f) |> str_remove("../benchmark/")) |> 
+  map(\(x) read.table(x,header = TRUE)) |> 
+  list_rbind(names_to = "prefix") |> 
+  separate_wider_delim(prefix, "/", names = c("tool", "combination")) |> 
+  separate_wider_delim(combination, ".", names=c("sample", "depth_t", "normal", "depth_n")) |> 
+  mutate(purity=str_split_i(sample, "_",i=2) |> as.integer()) |> 
+  select(tool, sample, purity, depth_t, depth_n, Precision, Recall, F1.score) |> 
+  arrange(tool, desc(purity), desc(depth_t), desc(depth_n)) |> 
+  rename("Tool"=tool, "Sample"=sample, "Tumour purity"=purity, "Tumour depth"=depth_t, "Normal depth"=depth_n) 
+
+df |> knitr::kable()
+df |> write_excel_csv("Supplementary Table 3.csv")
+```

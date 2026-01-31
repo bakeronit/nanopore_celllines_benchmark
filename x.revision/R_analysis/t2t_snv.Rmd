@@ -11,6 +11,9 @@ library(here)
 library(GenomicRanges)
 library(VariantAnnotation)
 revision_workdir <- "../"
+source("../../1.dna_mixing_celllines/R_analysis/config.R")
+mypal2 <- colorblind_pals 
+names(mypal2) <- c("FP","FN","TP")
 knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = FALSE, warnings = FALSE, include = TRUE, fig.align = 'center', fig.retina=2)
 ```
 
@@ -70,8 +73,8 @@ countOverlaps(dpsomatic, t2t_uniq_grange) |> sum()
 
 ```{r}
 chrom_chr <- paste0("chr", 1:22)
-chrom_sizes <- read_tsv("~/working/data/genome/reference.fasta.fai", col_names = c("chrom","length")) |> dplyr::select(chrom, length) |> mutate(offset=cumsum(length) - length) 
-cyto <- read_tsv("/working/genomeinfo/share/For_Ross/sv_annotation/data/GRCh38/cytoBandIdeo.txt.gz", col_names = c("chrom","start","end","arm","stain")) |> 
+chrom_sizes <- read_tsv("../../data/genome/reference.fasta.fai", col_names = c("chrom","length")) |> dplyr::select(chrom, length) |> mutate(offset=cumsum(length) - length) 
+cyto <- read_tsv("../../data/GRCh38/cytoBandIdeo.txt.gz", col_names = c("chrom","start","end","arm","stain")) |> 
   left_join(chrom_sizes) |> filter(chrom %in% chrom_chr) |> mutate(chrom=factor(chrom,levels=chrom_chr))
 
 get_distance_df <- function(benchmark_path) {
@@ -114,6 +117,18 @@ bc_paths |> set_names("clairS/COLO829.COLO829_BL", "deepsomatic/COLO829.COLO829_
   map(\(p) get_distance_df(p) |> calculate_bc()) |> list_rbind(names_to="prefix")
 ```
 ```{r}
+circos=c(gneg="#FFFFFF",
+               gpos25="#C8C8C8",
+               gpos33="#D2D2D2",
+               gpos50="#C8C8C8",
+               gpos66="#A0A0A0",
+               gpos75="#828282",
+               gpos100="#000000",
+               gpos="#000000",
+               stalk="#647FA4", #repetitive areas
+               acen="#D92F27", #centromeres
+               gvar="#DCDCDC",
+               border="black")
 distance_df <- get_distance_df("../analysis/snvs/clairS/COLO829.COLO829_BL/benchmark/")
 ggplot() + 
   geom_rect(data=cyto, aes(xmin=start,xmax=end, fill=stain), ymin=7.5, ymax=8.5, alpha=.8, color="black", linewidth=.1) +

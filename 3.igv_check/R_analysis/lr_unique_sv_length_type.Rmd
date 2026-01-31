@@ -34,7 +34,7 @@ ggsave("figures/figure5b.pdf", width = 5.8, height = 3,dpi = "retina")
 LR unique SVs are most DEL and INS/DUP. What about their length distribution? Long read suppose can easy capture the full inserted length of deleted segment in a single read.
 
 ```{r, warning=FALSE,fig.width=6, fig.height=4.2}
-df_lr_unique |> filter(svtype!="TRA") |> mutate(Type=case_when(suppvec=="11"~"Concordant", suppvec=="10"~"FN (SR unique)", suppvec=="01" ~ "FP (LR unique)" )) |> group_by(svtype, Type) |> rename("SV type"=svtype) |> 
+df_lr_unique |> filter(svtype!="TRA") |> mutate(Type=case_when(suppvec=="11"~"Concordant", suppvec=="10"~"FN (SR unique)", suppvec=="01" ~ "FP (LR unique)" )) |> group_by(svtype, Type) |> dplyr::rename("SV type"= svtype) |> 
   summarise(`Median SV length`=median(svlen)) |> ungroup() |> knitr::kable() 
 
 df_lr_unique |> filter(svtype!="TRA", suppvec!="10") |> ggplot(aes(x=svtype, y=svlen, fill=suppvec)) + 

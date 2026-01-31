@@ -120,18 +120,23 @@ restriction.
 
 ``` bash
 git clone https://github.com/bakeronit/nanopore_celllines_benchmark.git
-cd nanopore_celllines_benchmark
 ```
 
-**2.Download the data from OwnCloud:**
+**2.Download the data from
+[OwnCloud](https://qdocs.qimrberghofer.edu.au/owncloud/index.php/s/4h4Meqthr1v7gU5):**
+save as `nanopore_celllines_benchmark.tar`
 
 ``` bash
-wget -O data.zip link
-unzip data.zip -d data/
+tar -xvf nanopore_celllines_benchmark.tar
 ```
+
+Then each R notebook can be rendered.
 
 > ⚠️ Refer to `data_LICENSE.txt` for licensing terms and data use
 > conditions.
+
+Raw data has been uploaded to EGA under study
+[EGAS00001008107](https://ega-archive.org/studies/EGAS00001008107)
 
 ## License
 

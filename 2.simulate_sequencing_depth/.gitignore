@@ -1,2 +1,3 @@
 *.bak
 R_analysis/plot_benchmark.R
+simple_benchmark.sh

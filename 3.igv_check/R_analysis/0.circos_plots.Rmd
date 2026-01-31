@@ -18,13 +18,13 @@ knitr::opts_chunk$set(root.dir = here(), comment = NA, echo = FALSE, message = F
 Here, I investigated the genome distribution of structure variants in COLO829 and HCC1937, and what genes those LR unique SVs impacted. For COLO829, the number of SVs is small to show in a Circos plot but for HCC1937 which is featured with many SVs they circos plot are not very clear.
 
 ```{r}
-gff_grange <- import.gff("~/working/data/gene_models/Homo_sapiens.GRCh38.109.gff3.gz") |>  as("GRanges") 
+gff_grange <- import.gff("../../data/gene_models/Homo_sapiens.GRCh38.109.gff3.gz") |>  as("GRanges") 
 gene_grange <- gff_grange[gff_grange$type == "gene" & gff_grange$biotype=="protein_coding"]
 chrom_chr <- paste0("chr",1:22)
 ```
 
 ```{r}
-df <- read_tsv("~/working/bioprojects/nanopore_celllines_benchmark/3.igv_check/lr_specific/bedpe/COLO829.COLO829_BL.all.bedpe", col_names = c("chr1","start1","chr2","start2","svtype","svlen","supp")) |> mutate(end1=start1+1, end2=start2+1) |> filter(chr1 %in% chrom_chr, chr2%in% chrom_chr)
+df <- read_tsv("../../3.igv_check/lr_specific/bedpe/COLO829.COLO829_BL.all.bedpe", col_names = c("chr1","start1","chr2","start2","svtype","svlen","supp")) |> mutate(end1=start1+1, end2=start2+1) |> filter(chr1 %in% chrom_chr, chr2%in% chrom_chr)
 
 r1 <- df |> filter(supp=="01") |> select(chr1, start1, end1, svtype)|> rename(chr1="chr", start1="start", end1="end") |> mutate(chr=chr |> str_remove("chr")) |> GRanges()
 
@@ -60,7 +60,7 @@ circos.genomicLink(df |> dplyr::select(chr1,start1,end1), df |> dplyr::select(ch
 ```
 
 ```{r, warning=FALSE}
-df <- read_tsv("~/working/bioprojects/nanopore_celllines_benchmark/3.igv_check/lr_specific/bedpe/HCC1937.HCC1937_BL.all.bedpe", col_names = c("chr1","start1","chr2","start2","svtype","svlen","supp")) |> mutate(end1=start1+1, end2=start2+1) |> filter(chr1 %in% chrom_chr, chr2%in% chrom_chr)
+df <- read_tsv("../../3.igv_check/lr_specific/bedpe/HCC1937.HCC1937_BL.all.bedpe", col_names = c("chr1","start1","chr2","start2","svtype","svlen","supp")) |> mutate(end1=start1+1, end2=start2+1) |> filter(chr1 %in% chrom_chr, chr2%in% chrom_chr)
 
 r1 <- df |> filter(supp=="01") |> dplyr::select(chr1, start1, end1,svtype)|> rename(chr1="chr", start1="start",end1="end") |> mutate(chr=chr |> str_remove("chr")) |> GRanges()
 
@@ -96,8 +96,8 @@ circos.genomicLink(df |> dplyr::select(chr1,start1,end1), df |> dplyr::select(ch
 
 
 ```{r eval=FALSE}
-vcf <- "~/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/benchmark/svs/R10_sup_COLO829.COLO829_BL.all_merged.vcf"
-vcf <- "~/working/bioprojects/nanopore_celllines_benchmark/1.dna_mixing_celllines/work/analysis/benchmark/svs/R10_sup_HCC1937.HCC1937_BL.all_merged.vcf"
+vcf <- "../../1.dna_mixing_celllines/work/analysis/benchmark/svs/R10_sup_COLO829.COLO829_BL.all_merged.vcf"
+vcf <- "../../1.dna_mixing_celllines/work/analysis/benchmark/svs/R10_sup_HCC1937.HCC1937_BL.all_merged.vcf"
 df1 <- read.table(vcf, comment.char = "#") |> dplyr::select(V1,V2) |> 
     mutate(chr1=V1,start1=V2, end1=V2) |> dplyr::select(chr1,start1,end1)
 df2 <- VariantAnnotation::readVcf(vcf) |> VariantAnnotation::info() |> as.data.frame() |> dplyr::select(CHR2,END,SUPP_VEC) |> 

@@ -1,10 +1,10 @@
 library(RColorBrewer)
 library(ggpubfigs)
 
-purity_workdir <- "1.dna_mixing_celllines/work/"
-depth_workdir <- "2.simulate_sequencing_depth/"
-genome_stratification_dir <- "data/genome-stratification/"
-gs_dir <- "gs/goldstandard/"
+purity_workdir <- "../../1.dna_mixing_celllines/work/"
+depth_workdir <- "../../2.simulate_sequencing_depth/"
+genome_stratification_dir <- "../../data/genome-stratification/"
+gs_dir <- "../../gs/goldstandard/"
 
 purity_pals <- c(brewer.pal(9,"YlOrRd"), "#380010")
 
