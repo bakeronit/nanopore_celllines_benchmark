@@ -7,7 +7,7 @@
 ![GitHub last
 commit](https://img.shields.io/github/last-commit/bakeronit/nanopore_celllines_benchmark)
 [![Docker
-Image](https://img.shields.io/badge/docker-image-blue)](https://hub.docker.com/r/bakeronit/rstudio_hpc_cancer)
+Image](https://img.shields.io/badge/docker-image-blue)](https://hub.docker.com/layers/bakeronit/rstudio_hpc/0.1.0/images/sha256-e288941e0ab0b4a5e2152225169853912342132fbae370241e1d26912b270d5a)
 
 ## Summary
 
@@ -87,8 +87,11 @@ realistic scenarios.
 - [IGV check](3.igv_check/README.md)
 - [SNV calling Intersection](x.revision/R_analysis/ensembl_snv.md): Rmd
   file [ensembl_snv.Rmd](x.revision/R_analysis/ensembl_snv.Rmd)
-- [Align with CHM13-T2T assembly](x.revision/R_analysis/t2t_snv.Rmd):
-  Rmd file [t2t_snv.Rmd](x.revision/R_analysis/t2t_snv.Rmd)
+- [Align with CHM13-T2T assembly](x.revision/R_analysis/t2t_snv.md): Rmd
+  file [t2t_snv.Rmd](x.revision/R_analysis/t2t_snv.Rmd)
+- [Simulation from synthetic
+  genome](x.revision2/R_analysis/simulation.md): Rmd file
+  [simulation.Rmd](x.revision2/R_analysis/simulation.Rmd)
 
 ## Reproducibility
 
@@ -122,21 +125,32 @@ restriction.
 git clone https://github.com/bakeronit/nanopore_celllines_benchmark.git
 ```
 
-**2.Download the data from
-[OwnCloud](https://qdocs.qimrberghofer.edu.au/owncloud/index.php/s/4h4Meqthr1v7gU5):**
-save as `nanopore_celllines_benchmark.tar`
+**2.Download the processed data from
+[OwnCloud](https://qdocs.qimrberghofer.edu.au/owncloud/index.php/s/RVNthnpYjdipB09):**
+
+Click download which will save the folder as
+`nanopore_celllines_benchmark.tar`.
+
+**3. Extract the data**
+
+Untar the file at the same folder as the cloned repository, files will
+populate the expected folders used by the R Makrdown analysis.
 
 ``` bash
 tar -xvf nanopore_celllines_benchmark.tar
 ```
 
-Then each R notebook can be rendered.
+**4. Render the analysis notebooks**
+
+Notes:
+
+- The shared data are processed outputs from the Snakemake pipeline,
+  which requires high computational resources.
+- Raw sequencing data for full reprocessing are available via EGA study
+  [EGAS00001008107](https://ega-archive.org/studies/EGAS00001008107)
 
 > ⚠️ Refer to `data_LICENSE.txt` for licensing terms and data use
 > conditions.
-
-Raw data has been uploaded to EGA under study
-[EGAS00001008107](https://ega-archive.org/studies/EGAS00001008107)
 
 ## License
 
