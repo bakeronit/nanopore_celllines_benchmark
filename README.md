@@ -126,7 +126,7 @@ git clone https://github.com/bakeronit/nanopore_celllines_benchmark.git
 ```
 
 **2.Download the processed data from
-[OwnCloud](https://qdocs.qimrberghofer.edu.au/owncloud/index.php/s/kMKMDd6jVTRvrwS):**
+[OwnCloud](https://qdocs.qimrberghofer.edu.au/owncloud/index.php/s/SAgK9uFlOboObSR):**
 
 Click download which will save the folder as
 `nanopore_celllines_benchmark.tar`.

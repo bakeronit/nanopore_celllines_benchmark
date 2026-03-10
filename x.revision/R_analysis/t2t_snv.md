@@ -50,112 +50,13 @@ I also downloaded annotation bed files from
 
 <!-- -->
 
-    [1] 25060
-
-    [1] 19147
-
-    [1] 5
-
-    [1] 6697
-
-    [1] 2
-
-    [1] 4596
-
-    Warning: There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Warning: There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-
                               prefix    recall precision        F1
     1      clairS/COLO829.COLO829_BL 0.9572448 0.9403145 0.9487041
     2 deepsomatic/COLO829.COLO829_BL 0.9517707 0.9521412 0.9519559
     3      clairS/HCC1937.HCC1937_BL 0.8633085 0.7880336 0.8239554
     4 deepsomatic/HCC1937.HCC1937_BL 0.9094527 0.7893771 0.8451714
 
-    Warning: There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-    There was 1 warning in `arrange()`.
-    ℹ In argument: `..3 = str_rank(chrom, nummeric = T)`.
-    Caused by warning in `stri_opts_collator()`:
-    ! Unknown option to `stri_opts_collator`.
-
-    Warning: Removed 66 rows containing missing values (`geom_point()`).
-
 <img src="t2t_snv_files/figure-gfm/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" />
-
-    GRanges object with 40157 ranges and 1 metadata column:
-                        seqnames    ranges strand | paramRangeID
-                           <Rle> <IRanges>  <Rle> |     <factor>
-         chr1:56434_C/T     chr1     56434      * |           NA
-        chr1:187801_G/A     chr1    187801      * |           NA
-        chr1:317505_C/T     chr1    317505      * |           NA
-        chr1:376878_G/A     chr1    376878      * |           NA
-        chr1:610859_C/T     chr1    610859      * |           NA
-                    ...      ...       ...    ... .          ...
-       chrY:3514422_C/A     chrY   3514422      * |           NA
-       chrY:3515559_T/C     chrY   3515559      * |           NA
-      chrY:62059469_A/G     chrY  62059469      * |           NA
-      chrY:62090988_G/A     chrY  62090988      * |           NA
-      chrY:62105682_T/C     chrY  62105682      * |           NA
-      -------
-      seqinfo: 25 sequences from an unspecified genome
 
 <div id="refs" class="references csl-bib-body hanging-indent">
 

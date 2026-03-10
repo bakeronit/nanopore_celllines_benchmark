@@ -42,7 +42,7 @@ I also downloaded annotation bed files from [CHM13](https://github.com/marbl/CHM
  - telomere region
  - regions non-syntenic (unique) compared to GRCh38
 
-```{r load-bed}
+```{r load-bed, warning=FALSE}
 genome_stratification_dir <- paste0(revision_workdir, "data/")
 
 telomere_bed <- paste0(genome_stratification_dir, "chm13v2.0_telomere.bed")
@@ -53,25 +53,25 @@ t2t_uniq_grange <- data.table::fread(t2t_uniq_bed, select = 1:3, col.names = c("
 ```
 
 
-```{r}
+```{r warning=FALSE}
 dpsomatic <- readVcfAsVRanges(paste0(revision_workdir, "analysis/snvs/deepsomatic/HCC1937.HCC1937_BL/output.snv.vcf.gz"))
 clairs <- readVcfAsVRanges(paste0(revision_workdir, "analysis/snvs/clairS/HCC1937.HCC1937_BL/output.snv.vcf.gz")) 
 clairs <- clairs[clairs@seqnames %in% paste0("chr",c(1:22))]
 dpsomatic <- clairs[dpsomatic@seqnames %in% paste0("chr",c(1:22))]
 
-clairs |> length()
-dpsomatic |> length()
+#clairs |> length()
+#dpsomatic |> length()
 
-countOverlaps(clairs, telomere_grange) |> sum()
-countOverlaps(clairs, t2t_uniq_grange) |> sum()
-countOverlaps(dpsomatic, telomere_grange) |> sum()
-countOverlaps(dpsomatic, t2t_uniq_grange) |> sum()
+#countOverlaps(clairs, telomere_grange) |> sum()
+#countOverlaps(clairs, t2t_uniq_grange) |> sum()
+#countOverlaps(dpsomatic, telomere_grange) |> sum()
+#countOverlaps(dpsomatic, t2t_uniq_grange) |> sum()
 
 ```
 
 
 
-```{r}
+```{r, warning=FALSE}
 chrom_chr <- paste0("chr", 1:22)
 chrom_sizes <- read_tsv("../../data/genome/reference.fasta.fai", col_names = c("chrom","length")) |> dplyr::select(chrom, length) |> mutate(offset=cumsum(length) - length) 
 cyto <- read_tsv("../../data/GRCh38/cytoBandIdeo.txt.gz", col_names = c("chrom","start","end","arm","stain")) |> 
@@ -96,11 +96,9 @@ get_distance_df <- function(benchmark_path) {
   distance_df <- rbind(tp,fp,fn) |> mutate(chrom=factor(chrom,levels=chrom_chr))
   return(distance_df)
 }
-
-
 ```
 
-```{r}
+```{r, warning=FALSE}
 calculate_bc <- function(df) {
   total_gs <- df |> filter(type!="FP") |> nrow()
   tp <- df |> filter(type=="TP") |> nrow()
@@ -116,7 +114,8 @@ bc_paths <- c("../analysis/snvs/clairS/COLO829.COLO829_BL/benchmark/", "../analy
 bc_paths |> set_names("clairS/COLO829.COLO829_BL", "deepsomatic/COLO829.COLO829_BL", "clairS/HCC1937.HCC1937_BL", "deepsomatic/HCC1937.HCC1937_BL") |> 
   map(\(p) get_distance_df(p) |> calculate_bc()) |> list_rbind(names_to="prefix")
 ```
-```{r}
+
+```{r, warning=FALSE}
 circos=c(gneg="#FFFFFF",
                gpos25="#C8C8C8",
                gpos33="#D2D2D2",
@@ -144,10 +143,4 @@ ggplot() +
         strip.background = element_blank(),
         legend.position = c(0.8,0.35)) + 
   labs(x="Chromosome position", y="Distance (bp) between adjacent variants", fill="Stain", color="Category")
-```
-```{r}
-df <- readVcf("../analysis/snvs/deepsomatic/COLO829.COLO829_BL/hg38/output.snv.hg38_to_t2t.vcf.gz")
-
-df@rowRanges
-
 ```

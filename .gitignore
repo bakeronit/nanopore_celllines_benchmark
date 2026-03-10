@@ -38,3 +38,5 @@ gs/structural_variation/
 **/data/
 x.revision/run_qalter.sh
 data_big.list
+data_essential.zip
+data_essential.zip.md5
