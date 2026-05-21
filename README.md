@@ -12,7 +12,13 @@ Image](https://img.shields.io/badge/docker-image-blue)](https://hub.docker.com/l
 ## Summary
 
 This repository hosts the analysis scripts and pipeline associated with
-the paper in submission.
+the paper published in:
+
+> Jia Zhang, Ho Yi Wong, Lingchen Liu, Lambros T Koufariotis, Scott
+> Wood, Nadine Fitzpatrick, Jenny Quiatchon, Paul Collins, John V
+> Pearson, Nicola Waddell, **Cancer genome standards for long-read
+> sequencing using cancer cell line mixtures**, *GigaScience*, Volume
+> 15, 2026, giag037, <https://doi.org/10.1093/gigascience/giag037>
 
 In this study, we evaluated the performance of long-read sequencing
 (LRS) for detecting somatic variants across a range of tumor purities
@@ -27,10 +33,10 @@ realistic scenarios.
 ### Raw data processing
 
 - [Base calling and read alignment for cell line
-  mixtures](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md##Base%20calling%20and%20read%20alignment)
+  mixtures](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md#base-calling-and-read-alignment)
 - [Sequencing depth combinations](2.simulate_sequencing_depth/README.md)
 - [Variant
-  calling](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md##Variant%20calling)
+  calling](1.dna_mixing_celllines/nanopore_paired_tumour_workflow/README.md#variant-calling)
 - [QC and purity
   check](1.dna_mixing_celllines/R_analysis/0.purity_and_qc.md): Rmd file
   [purity_and_qc.Rmd](1.dna_mixing_celllines/R_analysis/0.purity_and_qc.Rmd)
@@ -100,14 +106,15 @@ Clicking on the links will open web-readable pages that include
 explanatory text, selected commands, plots, and tables. The underlying
 code used to generate these outputs is provided in the corresponding R
 Markdown (`.Rmd`) files. Specifically, code and input data used to
-generate each figure in the manuscript are list [here](data_readme.md)
+generate each figure in the manuscript are listed [here](data_readme.md)
 
 For R environment details, see the [R Session Info](rsessioninfo.md)
 page.
 
-All necessary data required to run these notebooks will be made
-available via OwnCloud. This dataset is dedicated to the public domain
-under the [Creative Commons CC0 1.0 Universal (CC0 1.0) Public Domain
+All necessary data required to run these notebooks are available via
+[GigaDB](https://gigadb.org/dataset/102811). This dataset is dedicated
+to the public domain under the [Creative Commons CC0 1.0 Universal (CC0
+1.0) Public Domain
 Dedication](https://creativecommons.org/publicdomain/zero/1.0/),
 allowing unrestricted reuse.
 
@@ -125,19 +132,20 @@ restriction.
 git clone https://github.com/bakeronit/nanopore_celllines_benchmark.git
 ```
 
-**2.Download the processed data from
-[OwnCloud](https://qdocs.qimrberghofer.edu.au/owncloud/index.php/s/SAgK9uFlOboObSR):**
+**2. Download the processed data from
+[GigaDB](https://gigadb.org/dataset/102811):**
 
-Click download which will save the folder as
-`nanopore_celllines_benchmark.tar`.
+Click the
+[data_essential.zip](https://s3.ap-northeast-1.wasabisys.com/gigadb-datasets/live/pub/10.5524/102000_103000/102811/data_essential.zip)
+to download all files necessary to make tables and figures.
 
 **3. Extract the data**
 
-Untar the file at the same folder as the cloned repository, files will
-populate the expected folders used by the R Makrdown analysis.
+Unzip the file at the same folder as the cloned repository, files will
+populate the expected folders used by the R Markdown analysis.
 
 ``` bash
-tar -xvf nanopore_celllines_benchmark.tar
+unzip data_essential.zip
 ```
 
 **4. Render the analysis notebooks**
